@@ -6,10 +6,10 @@ import { useState } from "react";
 import { Link, useLocation } from "wouter";
 
 const items = [
-  { label: "Overview", href: "/", icon: BarChart3 },
-  { label: "Orders", href: "/orders", icon: ClipboardList },
-  { label: "Tickets", href: "/tickets", icon: Ticket },
-  { label: "Settings", href: "/settings", icon: Settings },
+  { label: "Overview", href: "/admin", icon: BarChart3 },
+  { label: "Orders", href: "/admin/orders", icon: ClipboardList },
+  { label: "Tickets", href: "/admin/tickets", icon: Ticket },
+  { label: "Settings", href: "/admin/settings", icon: Settings },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -30,7 +30,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {open && <button className="fixed inset-0 z-40 bg-slate-950/20 md:hidden" aria-label="Close menu" onClick={() => setOpen(false)} />}
       <aside className={cn("fixed inset-y-0 left-0 z-50 flex w-[260px] -translate-x-full flex-col border-r border-slate-200/80 bg-white px-4 py-5 transition-transform md:translate-x-0", open && "translate-x-0")}>
         <div className="flex items-center justify-between px-2 pb-8">
-          <Link href="/" className="flex items-center gap-3" onClick={() => setOpen(false)}>
+          <Link href="/admin" className="flex items-center gap-3" onClick={() => setOpen(false)}>
             <span className="grid h-9 w-9 place-items-center rounded-xl bg-indigo-600 text-white shadow-lg shadow-indigo-600/20"><Ticket className="h-5 w-5" /></span>
             <div><p className="font-semibold tracking-tight">Passage</p><p className="text-[11px] font-medium uppercase tracking-[0.18em] text-slate-400">Ticketing OS</p></div>
           </Link>

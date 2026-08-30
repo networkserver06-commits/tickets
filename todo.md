@@ -23,3 +23,16 @@
 - [x] Validate the production deployment path and push the corrected build to GitHub
 - [ ] Push the post-fix commit to the GitHub branch tracked by Vercel
 - [ ] Verify the live Vercel URL serves the dashboard instead of raw source text
+- [x] Add customer event storefront with event details, ticket quantity selector, buyer form, and Paystack checkout flow
+- [x] Add digital ticket page with unique QR code, event metadata, status, and save/export action
+- [x] Add public ticket verification route for QR destinations
+- [x] Expand admin Overview with Total Scans and richer operational metrics
+- [x] Add searchable and paginated Orders table with ticket counts
+- [x] Add issued Tickets table with scan and verification status
+- [x] Add Vercel-compatible route handler entrypoints with force-dynamic behavior and build-safe env handling
+- [x] Add QR code dependency and Next-style route compatibility documentation for the managed scaffold
+- [x] Add tests for storefront calculations, ticket rendering data, verification, and webhook behavior
+- [ ] Validate the expanded platform and push the completion commit to GitHub main
+- [x] Fix TypeScript syntax errors in the expanded ticket-table implementation
+- [ ] Fix Vercel production deployment error and verify the deployed output is the dashboard
+- [ ] Push the validated fix to GitHub main

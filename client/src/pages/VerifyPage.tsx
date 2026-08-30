@@ -1,0 +1,14 @@
+import { Button } from "@/components/ui/button";
+import { AlertTriangle, ArrowLeft, CheckCircle2, Loader2, Ticket, XCircle } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Link, useRoute } from "wouter";
+
+export default function VerifyPage() {
+  const [, params] = useRoute("/verify/:id");
+  const id = params?.id || "";
+  const [state, setState] = useState<"loading" | "valid" | "used" | "missing" | "error">("loading");
+  useEffect(() => { let active = true; fetch("/api/tickets/verify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ticketId: id }) }).then(response => { if (!active) return; if (response.ok) setState("valid"); else if (response.status === 409) setState("used"); else if (response.status === 404) setState("missing"); else setState("error"); }).catch(() => active && setState("error")); return () => { active = false; }; }, [id]);
+  const config = { loading: { icon: Loader2, title: "Checking pass…", body: "Please wait while we verify this ticket.", tone: "text-slate-600", bg: "bg-slate-100" }, valid: { icon: CheckCircle2, title: "Entry approved", body: "This ticket is valid and has been marked as used.", tone: "text-emerald-600", bg: "bg-emerald-50" }, used: { icon: XCircle, title: "Already used", body: "This ticket has already been scanned and cannot be reused.", tone: "text-slate-600", bg: "bg-slate-100" }, missing: { icon: AlertTriangle, title: "Ticket not found", body: "We could not find this ticket. Please ask the attendee to contact support.", tone: "text-amber-600", bg: "bg-amber-50" }, error: { icon: AlertTriangle, title: "Unable to verify", body: "The verification service is unavailable. Try again in a moment.", tone: "text-rose-600", bg: "bg-rose-50" } }[state];
+  const Icon = config.icon;
+  return <div className="grid min-h-screen place-items-center bg-slate-950 px-5"><div className="w-full max-w-sm text-center"><span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-indigo-600 text-white"><Ticket className="h-6 w-6" /></span><div className={`mx-auto mt-8 grid h-20 w-20 place-items-center rounded-full ${config.bg} ${config.tone}`}><Icon className={`h-10 w-10 ${state === "loading" ? "animate-spin" : ""}`} /></div><h1 className="mt-6 text-2xl font-semibold tracking-tight text-white">{config.title}</h1><p className="mt-3 leading-6 text-slate-400">{config.body}</p><p className="mt-5 font-mono text-xs text-slate-600">{id}</p><div className="mt-8 flex gap-3"><Link href="/" className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-white/10 text-sm font-semibold text-white hover:bg-white/10"><ArrowLeft className="h-4 w-4" /> Event page</Link>{state === "error" && <Button onClick={() => window.location.reload()} className="h-11 flex-1 rounded-xl bg-white text-slate-950 hover:bg-slate-100">Try again</Button>}</div></div></div>;
+}
