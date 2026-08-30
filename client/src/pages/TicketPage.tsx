@@ -12,7 +12,8 @@ export default function TicketPage() {
   const [loading, setLoading] = useState(!id.startsWith("preview-"));
   const [error, setError] = useState("");
   useEffect(() => { if (!id || id.startsWith("preview-")) return; let active = true; fetch(`/api/tickets/${encodeURIComponent(id)}`).then(async response => { const data = await response.json(); if (!response.ok) throw new Error(data.error || "Ticket not found"); if (active) setTicket(data.ticket); }).catch(reason => active && setError(reason instanceof Error ? reason.message : "Ticket not found")).finally(() => active && setLoading(false)); return () => { active = false; }; }, [id]);
-  const verifyUrl = `${window.location.origin}/verify/${id}`;
+  const baseUrl = import.meta.env.VITE_BASE_URL || window.location.origin;
+  const verifyUrl = `${baseUrl.replace(/\/$/, "")}/verify/${id}`;
   if (loading) return <div className="grid min-h-screen place-items-center bg-slate-950 text-white"><Loader2 className="h-8 w-8 animate-spin text-indigo-300" /></div>;
   if (error || !ticket) return <div className="grid min-h-screen place-items-center bg-slate-950 px-5 text-center text-white"><div><TicketIcon className="mx-auto h-10 w-10 text-indigo-300" /><h1 className="mt-5 text-2xl font-semibold">Ticket unavailable</h1><p className="mt-2 text-slate-400">{error || "This ticket could not be loaded."}</p><Link href="/" className="mt-7 inline-flex items-center gap-2 text-sm font-semibold text-indigo-300"><ArrowLeft className="h-4 w-4" /> Back to event</Link></div></div>;
   const isValid = ticket.status === "valid";

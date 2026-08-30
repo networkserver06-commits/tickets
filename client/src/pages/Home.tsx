@@ -6,32 +6,41 @@ import { Activity, CheckCircle2, ChevronLeft, ChevronRight, CircleDollarSign, Cl
 import { useEffect, useMemo, useState } from "react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { useLocation } from "wouter";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { startLogin } from "@/const";
 
 type Order = { id: string; buyerEmail: string; totalAmount: number; createdAt: string | number | Date };
 type TicketRow = { id: string; orderId: string; status: "valid" | "used" };
 
 type Summary = { orders: Order[]; tickets: TicketRow[] };
-const money = (value: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "NGN", maximumFractionDigits: 0 }).format(value / 100);
+const money = (value: number) => `KSh ${new Intl.NumberFormat("en-KE", { maximumFractionDigits: 0 }).format(value / 100)}`;
 const dateLabel = (value: string | number | Date) => new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 
 const emptySummary: Summary = { orders: [], tickets: [] };
+export function shouldShowAdminLogin(isAuthenticated: boolean, authLoading: boolean) { return !authLoading && !isAuthenticated; }
 
 export default function Home() {
   const [location] = useLocation();
+  const { user, loading: authLoading, isAuthenticated, logout } = useAuth();
   const [summary, setSummary] = useState<Summary>(emptySummary);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
+    if (!isAuthenticated) { setLoading(false); return; }
     let active = true;
     setLoading(true);
     fetch("/api/dashboard/summary").then(async response => { if (!response.ok) throw new Error("Unable to load dashboard data"); return response.json(); }).then(data => { if (active) setSummary(data); }).catch(() => { if (active) setError("Dashboard data is temporarily unavailable."); }).finally(() => active && setLoading(false));
     return () => { active = false; };
-  }, []);
+  }, [isAuthenticated]);
 
+  if (authLoading) return <LoginScreen loading />;
+  if (shouldShowAdminLogin(isAuthenticated, authLoading)) return <LoginScreen />;
   const adminPath = location.replace(/^\/admin/, "") || "/";
   return <DashboardLayout>{adminPath === "/" ? <Overview summary={summary} loading={loading} error={error} onRetry={() => window.location.reload()} /> : <SubPage path={adminPath} summary={summary} loading={loading} error={error} />}</DashboardLayout>;
 }
+
+function LoginScreen({ loading = false }: { loading?: boolean }) { return <div className="grid min-h-screen place-items-center bg-slate-950 px-5"><div className="w-full max-w-sm text-center"><span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-indigo-600 text-white shadow-xl shadow-indigo-600/20"><Ticket className="h-7 w-7" /></span><p className="mt-7 text-xs font-semibold uppercase tracking-[0.2em] text-indigo-300">Passage admin</p><h1 className="mt-3 text-3xl font-semibold tracking-tight text-white">Your event, in control.</h1><p className="mt-3 leading-6 text-slate-400">Sign in to review orders, manage tickets, and verify guests at the door.</p>{loading ? <div className="mx-auto mt-8 h-12 w-full animate-pulse rounded-xl bg-white/10" /> : <Button onClick={() => startLogin()} className="mt-8 h-12 w-full rounded-xl bg-white text-slate-950 hover:bg-slate-100">Sign in to continue <TrendingUp className="ml-2 h-4 w-4" /></Button>}<p className="mt-6 text-xs text-slate-600">Admin access is protected by secure OAuth.</p></div></div>; }
 
 function Overview({ summary, loading, error, onRetry }: { summary: Summary; loading: boolean; error: string; onRetry: () => void }) {
   const ticketsSold = summary.tickets.length;
@@ -53,7 +62,7 @@ function Overview({ summary, loading, error, onRetry }: { summary: Summary; load
       <Metric label="Total scans" value={loading ? "—" : summary.tickets.filter(ticket => ticket.status === "used").length.toLocaleString()} detail="Verified at the door" icon={CheckCircle2} tint="indigo" />
     </div>
     <div className="grid gap-5 xl:grid-cols-[1.45fr_1fr]">
-      <Card className="overflow-hidden border-0 bg-white shadow-[0_16px_45px_rgba(15,23,42,0.06)]"><CardHeader className="flex flex-row items-center justify-between pb-2"><div><CardTitle className="text-base">Recent sales</CardTitle><p className="mt-1 text-sm text-slate-500">Revenue movement from successful orders</p></div><span className="flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700"><TrendingUp className="h-3.5 w-3.5" /> Live</span></CardHeader><CardContent className="pt-5"><div className="h-[260px] w-full">{chartData.length ? <ResponsiveContainer width="100%" height="100%"><AreaChart data={chartData} margin={{ top: 10, right: 8, left: -18, bottom: 0 }}><defs><linearGradient id="salesFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#6366f1" stopOpacity={0.25} /><stop offset="100%" stopColor="#6366f1" stopOpacity={0} /></linearGradient></defs><CartesianGrid vertical={false} stroke="#eef0f5" /><XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 12 }} /><YAxis axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 12 }} tickFormatter={v => `₦${v / 1000}k`} /><Tooltip formatter={(value: number) => [money(value * 100), "Sales"]} contentStyle={{ border: "0", borderRadius: "12px", boxShadow: "0 10px 30px rgba(15,23,42,.12)" }} /><Area type="monotone" dataKey="sales" stroke="#6366f1" strokeWidth={3} fill="url(#salesFill)" /></AreaChart></ResponsiveContainer> : <EmptyState icon={TrendingUp} title="Sales will appear here" description="Connect Paystack and your first successful order will start the trendline." />}</div></CardContent></Card>
+      <Card className="overflow-hidden border-0 bg-white shadow-[0_16px_45px_rgba(15,23,42,0.06)]"><CardHeader className="flex flex-row items-center justify-between pb-2"><div><CardTitle className="text-base">Recent sales</CardTitle><p className="mt-1 text-sm text-slate-500">Revenue movement from successful orders</p></div><span className="flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700"><TrendingUp className="h-3.5 w-3.5" /> Live</span></CardHeader><CardContent className="pt-5"><div className="h-[260px] w-full">{chartData.length ? <ResponsiveContainer width="100%" height="100%"><AreaChart data={chartData} margin={{ top: 10, right: 8, left: -18, bottom: 0 }}><defs><linearGradient id="salesFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#6366f1" stopOpacity={0.25} /><stop offset="100%" stopColor="#6366f1" stopOpacity={0} /></linearGradient></defs><CartesianGrid vertical={false} stroke="#eef0f5" /><XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 12 }} /><YAxis axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 12 }} tickFormatter={v => `KSh ${(v / 1000).toFixed(0)}k`} /><Tooltip formatter={(value: number) => [money(value * 100), "Sales"]} contentStyle={{ border: "0", borderRadius: "12px", boxShadow: "0 10px 30px rgba(15,23,42,.12)" }} /><Area type="monotone" dataKey="sales" stroke="#6366f1" strokeWidth={3} fill="url(#salesFill)" /></AreaChart></ResponsiveContainer> : <EmptyState icon={TrendingUp} title="Sales will appear here" description="Connect Paystack and your first successful order will start the trendline." />}</div></CardContent></Card>
       <Card className="border-0 bg-slate-950 text-white shadow-[0_16px_45px_rgba(15,23,42,0.12)]"><CardHeader><p className="text-sm font-medium text-slate-400">Entrance readiness</p><CardTitle className="mt-1 text-2xl tracking-tight">Your team is in control.</CardTitle></CardHeader><CardContent><div className="space-y-5"><Progress label="Valid tickets" value={ticketsSold ? (summary.tickets.filter(t => t.status === "valid").length / ticketsSold) * 100 : 0} color="bg-indigo-400" /><Progress label="Admitted guests" value={ticketsSold ? (summary.tickets.filter(t => t.status === "used").length / ticketsSold) * 100 : 0} color="bg-emerald-400" /><div className="border-t border-white/10 pt-4 text-sm text-slate-400">Ticket verification is atomic, so every scan has one clear outcome.</div></div></CardContent></Card>
     </div>
     <OrdersTable orders={summary.orders} tickets={summary.tickets} loading={loading} />

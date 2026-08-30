@@ -154,6 +154,10 @@ const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(
 
 export default defineConfig({
   plugins,
+  define: {
+    "import.meta.env.VITE_PAYSTACK_PUBLIC_KEY": JSON.stringify(process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || process.env.VITE_PAYSTACK_PUBLIC_KEY || ""),
+    "import.meta.env.VITE_BASE_URL": JSON.stringify(process.env.NEXT_PUBLIC_BASE_URL || ""),
+  },
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "client", "src"),

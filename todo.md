@@ -21,8 +21,8 @@
 - [x] Document the Turso migration command and runtime environment requirements for deployment
 - [x] Diagnose and fully fix the reported Vercel production deployment/runtime error from the attached screenshot
 - [x] Validate the production deployment path and push the corrected build to GitHub
-- [ ] Push the post-fix commit to the GitHub branch tracked by Vercel
-- [ ] Verify the live Vercel URL serves the dashboard instead of raw source text
+- [x] Push the post-fix commit to the GitHub branch tracked by Vercel
+- [x] Verify the live Vercel URL serves the dashboard instead of raw source text
 - [x] Add customer event storefront with event details, ticket quantity selector, buyer form, and Paystack checkout flow
 - [x] Add digital ticket page with unique QR code, event metadata, status, and save/export action
 - [x] Add public ticket verification route for QR destinations
@@ -32,7 +32,13 @@
 - [x] Add Vercel-compatible route handler entrypoints with force-dynamic behavior and build-safe env handling
 - [x] Add QR code dependency and Next-style route compatibility documentation for the managed scaffold
 - [x] Add tests for storefront calculations, ticket rendering data, verification, and webhook behavior
-- [ ] Validate the expanded platform and push the completion commit to GitHub main
+- [x] Validate the expanded platform and push the completion commit to GitHub main
 - [x] Fix TypeScript syntax errors in the expanded ticket-table implementation
-- [ ] Fix Vercel production deployment error and verify the deployed output is the dashboard
-- [ ] Push the validated fix to GitHub main
+- [x] Fix Vercel production deployment error and verify the deployed output is the dashboard
+- [x] Push the validated fix to GitHub main
+- [x] Convert all storefront, dashboard, chart, and payment currency handling from NGN to Kenyan Shillings (KES/KSh)
+- [x] Add protected admin login before allowing access to /admin routes
+- [ ] Validate Vercel environment variables and the authenticated admin flow
+- [x] Consume NEXT_PUBLIC_BASE_URL in the public ticket QR URL with a safe browser-origin fallback
+- [x] Add regression coverage for KES formatting and admin authentication boundary behavior (7 tests passing)
+- [ ] Verify the live /admin login gate and dashboard after the next Vercel deployment
