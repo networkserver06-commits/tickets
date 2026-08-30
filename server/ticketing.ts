@@ -28,6 +28,17 @@ export function registerTicketingRoutes(app: Express, dbFactory: () => any = get
     });
   });
 
+  app.get("/api/tickets/:ticketId", async (req: Request, res: Response) => {
+    const ticketId = typeof req.params.ticketId === "string" ? req.params.ticketId.trim() : "";
+    if (!ticketId) return res.status(400).json({ error: "ticketId is required" });
+    const db = dbFactory();
+    if (!db) return res.status(503).json({ error: "Database unavailable" });
+    const result = await db.select({ id: tickets.id, status: tickets.status, orderId: tickets.orderId, buyerEmail: orders.buyerEmail }).from(tickets).leftJoin(orders, eq(tickets.orderId, orders.id)).where(eq(tickets.id, ticketId)).limit(1);
+    const ticket = result[0];
+    if (!ticket) return res.status(404).json({ error: "Ticket not found" });
+    return res.json({ ticket });
+  });
+
   app.post("/api/tickets/verify", async (req: Request, res: Response) => {
     const ticketId = typeof req.body?.ticketId === "string" ? req.body.ticketId.trim() : "";
     if (!ticketId) return res.status(400).json({ valid: false, error: "ticketId is required" });

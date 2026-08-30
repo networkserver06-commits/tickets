@@ -1,4 +1,8 @@
 import express from "express";
+
+// Next-style route handlers are dynamic in production; this export is retained for
+// compatibility when the managed scaffold is migrated to Next.js App Router.
+export const dynamic = "force-dynamic";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { registerTicketingRoutes } from "../server/ticketing";
 
