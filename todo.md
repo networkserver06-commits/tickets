@@ -12,10 +12,14 @@
 - [x] Implement /api/tickets/verify with atomic valid-to-used update
 - [x] Add or update Vitest coverage for ticket workflows and API behavior
 - [x] Run type checks, tests, and production build; resolve all errors
-- [ ] Initialize Git repository and push main branch to the requested GitHub origin
+- [x] Initialize Git repository and push main branch to the requested GitHub origin
 - [x] Add per-page loading, empty, and error states to Orders, Tickets, and Settings routes
 - [x] Align production runtime with true Turso/SQLite Drizzle persistence or document the managed database constraint explicitly
 - [x] Fix ticket verification to use the actual conditional update result without a success fallback
 - [x] Add route-level tests for webhook signature rejection and ticket-not-found verification outcomes
 - [x] Add an explicit Settings loading state and configuration-missing empty state
 - [x] Document the Turso migration command and runtime environment requirements for deployment
+- [x] Diagnose and fully fix the reported Vercel production deployment/runtime error from the attached screenshot
+- [x] Validate the production deployment path and push the corrected build to GitHub
+- [ ] Push the post-fix commit to the GitHub branch tracked by Vercel
+- [ ] Verify the live Vercel URL serves the dashboard instead of raw source text
