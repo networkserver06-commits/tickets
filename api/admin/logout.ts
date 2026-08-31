@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import app from "../_app";
+import app from "../_adminApp";
 
 export default function handler(req: VercelRequest, res: VercelResponse) {
   return app(req, res);
