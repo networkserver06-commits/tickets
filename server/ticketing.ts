@@ -4,6 +4,7 @@ import type { Express, Request, Response } from "express";
 import { nanoid } from "nanoid";
 import { orders, tickets } from "../drizzle/ticketing-schema";
 import { getTicketDb } from "./ticketDb";
+import { requireAdmin } from "./adminAuth";
 
 const getPaystackSecret = () => process.env.PAYSTACK_SECRET_KEY;
 
@@ -39,7 +40,7 @@ export function registerTicketingRoutes(app: Express, dbFactory: () => any = get
     return res.json({ ticket });
   });
 
-  app.post("/api/tickets/verify", async (req: Request, res: Response) => {
+  app.post("/api/tickets/verify", requireAdmin, async (req: Request, res: Response) => {
     const ticketId = typeof req.body?.ticketId === "string" ? req.body.ticketId.trim() : "";
     if (!ticketId) return res.status(400).json({ valid: false, error: "ticketId is required" });
     const db = dbFactory();
@@ -53,7 +54,7 @@ export function registerTicketingRoutes(app: Express, dbFactory: () => any = get
     return res.json({ valid: true, status: "used", ticketId });
   });
 
-  app.get("/api/dashboard/summary", async (_req, res) => {
+  app.get("/api/dashboard/summary", requireAdmin, async (_req, res) => {
     const db = dbFactory();
     if (!db) return res.status(503).json({ error: "Database unavailable" });
     const [orderRows, ticketRows] = await Promise.all([
