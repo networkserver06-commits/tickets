@@ -2,7 +2,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
-    const { getAdminUsername } = await import("../../server/adminAuth");
+    const { getAdminUsername } = await import("../../server/adminAuth.ts");
     const username = getAdminUsername(req);
     res.status(200).json(username ? { authenticated: true, user: { username } } : { authenticated: false });
   } catch (error) {
