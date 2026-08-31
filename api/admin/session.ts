@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import app from "../_adminApp";
+import { getAdminUsername } from "../../server/adminAuth";
 
 export default function handler(req: VercelRequest, res: VercelResponse) {
-  return app(req, res);
+  const username = getAdminUsername(req);
+  res.status(200).json(username ? { authenticated: true, user: { username } } : { authenticated: false });
 }
