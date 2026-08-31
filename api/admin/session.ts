@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { getAdminUsername } from "../_adminAuth";
+import { getAdminUsername } from "../_adminAuth.js";
 
 export default function handler(req: VercelRequest, res: VercelResponse) {
   const username = getAdminUsername(req);
