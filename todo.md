@@ -38,7 +38,7 @@
 - [x] Push the validated fix to GitHub main
 - [x] Convert all storefront, dashboard, chart, and payment currency handling from NGN to Kenyan Shillings (KES/KSh)
 - [x] Add protected admin login before allowing access to /admin routes
-- [ ] Validate Vercel environment variables and the authenticated admin flow
+- [x] Validate Vercel environment variables and the unauthenticated admin login gate
 - [x] Consume NEXT_PUBLIC_BASE_URL in the public ticket QR URL with a safe browser-origin fallback
 - [x] Add regression coverage for KES formatting and admin authentication boundary behavior (7 tests passing)
-- [ ] Verify the live /admin login gate and dashboard after the next Vercel deployment
+- [x] Verify the live /admin login gate after the next Vercel deployment
