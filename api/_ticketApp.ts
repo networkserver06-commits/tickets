@@ -1,6 +1,6 @@
 import express from "express";
 import { requireAdmin } from "./_adminAuth.js";
-import { registerTicketingRoutes } from "../server/ticketing.js";
+import { registerTicketingRoutes } from "./_ticketing.js";
 
 const app = express();
 app.use("/api/webhook/paystack", express.raw({ type: "application/json", limit: "2mb" }));
