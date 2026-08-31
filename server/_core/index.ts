@@ -9,6 +9,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { registerAdminRoutes } from "../adminAuth";
 import { registerTicketingRoutes } from "../ticketing";
+import { requireAdmin } from "../adminAuth";
 import { serveStatic, setupVite } from "./vite";
 
 function isPortAvailable(port: number): Promise<boolean> {
@@ -40,7 +41,7 @@ async function startServer() {
   registerStorageProxy(app);
   registerOAuthRoutes(app);
   registerAdminRoutes(app);
-  registerTicketingRoutes(app);
+  registerTicketingRoutes(app, undefined, requireAdmin);
   // tRPC API
   app.use(
     "/api/trpc",
