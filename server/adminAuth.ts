@@ -1,4 +1,4 @@
-import crypto from "node:crypto";
+import * as crypto from "node:crypto";
 import { parse as parseCookie } from "cookie";
 import type { Express, NextFunction, Request, Response } from "express";
 import { getSessionCookieOptions } from "./_core/cookies";
