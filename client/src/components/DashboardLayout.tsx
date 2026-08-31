@@ -1,4 +1,3 @@
-import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { BarChart3, ChevronRight, ClipboardList, Menu, Settings, Ticket, X } from "lucide-react";
@@ -12,10 +11,9 @@ const items = [
   { label: "Settings", href: "/admin/settings", icon: Settings },
 ];
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+export default function DashboardLayout({ children, username, onLogout }: { children: React.ReactNode; username?: string; onLogout: () => Promise<void> }) {
   const [open, setOpen] = useState(false);
   const [location] = useLocation();
-  const { user, logout } = useAuth();
 
   return (
     <div className="min-h-screen bg-[#f7f8fa] text-slate-950">
@@ -44,8 +42,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           })}
         </nav>
         <div className="mt-auto rounded-2xl bg-slate-950 p-4 text-white shadow-xl shadow-slate-950/10">
-          <p className="text-xs font-medium text-slate-400">Your workspace</p><p className="mt-1 truncate text-sm font-semibold">{user?.name || "Event operations"}</p><p className="mt-3 text-xs leading-5 text-slate-400">Keep every entrance moving with confidence.</p>
-          {user && <button onClick={logout} className="mt-3 text-xs font-semibold text-indigo-300 hover:text-white">Sign out</button>}
+          <p className="text-xs font-medium text-slate-400">Your workspace</p><p className="mt-1 truncate text-sm font-semibold">{username || "Event operations"}</p><p className="mt-3 text-xs leading-5 text-slate-400">Keep every entrance moving with confidence.</p>
+          {username && <button onClick={onLogout} className="mt-3 text-xs font-semibold text-indigo-300 hover:text-white">Sign out</button>}
         </div>
       </aside>
       <main className="min-h-screen pt-16 md:pl-[260px] md:pt-0"><div className="mx-auto max-w-[1440px] p-4 sm:p-6 lg:p-10">{children}</div></main>
