@@ -1,4 +1,4 @@
-import crypto from "node:crypto";
+import * as crypto from "node:crypto";
 import type { NextFunction, Request, Response } from "express";
 
 export const ADMIN_SESSION_COOKIE = "passage_admin_session";
