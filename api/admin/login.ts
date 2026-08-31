@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { authenticateAdmin, setAdminCookie } from "../_adminAuth";
+import { authenticateAdmin, setAdminCookie } from "../_adminAuth.js";
 
 export default function handler(req: VercelRequest, res: VercelResponse) {
   const username = typeof req.body?.username === "string" ? req.body.username.trim() : "";
