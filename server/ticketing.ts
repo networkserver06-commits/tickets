@@ -1,9 +1,9 @@
-import crypto from "node:crypto";
+import * as crypto from "node:crypto";
 import { and, desc, eq } from "drizzle-orm";
 import type { Express, Request, RequestHandler, Response } from "express";
 import { nanoid } from "nanoid";
-import { orders, tickets } from "../drizzle/ticketing-schema";
-import { getTicketDb } from "./ticketDb";
+import { orders, tickets } from "../drizzle/ticketing-schema.js";
+import { getTicketDb } from "./ticketDb.js";
 
 const getPaystackSecret = () => process.env.PAYSTACK_SECRET_KEY;
 
