@@ -42,3 +42,20 @@
 - [x] Consume NEXT_PUBLIC_BASE_URL in the public ticket QR URL with a safe browser-origin fallback
 - [x] Add regression coverage for KES formatting and admin authentication boundary behavior (7 tests passing)
 - [x] Verify the live /admin login gate after the next Vercel deployment
+- [x] Add secure admin Paystack transactions API endpoint using PAYSTACK_SECRET_KEY
+- [x] Add recent transactions admin view with payment status badges and KSh amounts
+- [x] Add loading, empty, error, and responsive states for transactions
+- [x] Add tests for transaction normalization and API error handling
+- [ ] Add multi-tenant clients, events, and tickets schema fields and relations for Turso/Drizzle
+- [ ] Add Paystack subaccount creation and split-payment configuration per event
+- [ ] Extend Paystack webhook handling for charge.success, tenant/event lookup, unique tickets, and Resend confirmation email
+- [ ] Add dynamic event storefront routes and event-backed checkout metadata
+- [ ] Add dynamic digital pass route with buyer/event details and QR gate URL
+- [ ] Add PIN-protected hidden gate check-in route with manual ticket/phone lookup and atomic check-in
+- [ ] Add hidden multi-tenant management portal with client onboarding and event management
+- [ ] Add robots exclusions for hidden gate and management routes
+- [ ] Add safe environment handling for Resend, gate PIN, Paystack, Turso, and base URL variables
+- [ ] Add tests for multi-tenant APIs, split payments, email failure handling, and gate check-in
+- [x] Register /admin/transactions in the client router and verify the local transactions page is reachable
+- [x] Enforce admin-role authorization on the Paystack transactions endpoint and test authenticated non-admin rejection
+- [x] Add tests for missing Paystack secret and upstream Paystack failure responses

@@ -1,7 +1,7 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { BarChart3, ChevronRight, ClipboardList, Menu, Settings, Ticket, X } from "lucide-react";
+import { BarChart3, ChevronRight, ClipboardList, CreditCard, Menu, Settings, Ticket, X } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 
@@ -9,6 +9,7 @@ const items = [
   { label: "Overview", href: "/admin", icon: BarChart3 },
   { label: "Orders", href: "/admin/orders", icon: ClipboardList },
   { label: "Tickets", href: "/admin/tickets", icon: Ticket },
+  { label: "Transactions", href: "/admin/transactions", icon: CreditCard },
   { label: "Settings", href: "/admin/settings", icon: Settings },
 ];
 
