@@ -59,3 +59,11 @@
 - [x] Register /admin/transactions in the client router and verify the local transactions page is reachable
 - [x] Enforce admin-role authorization on the Paystack transactions endpoint and test authenticated non-admin rejection
 - [x] Add tests for missing Paystack secret and upstream Paystack failure responses
+- [ ] Complete the attached multi-tenant clients, events, and ticket data model requirements
+- [ ] Complete attached Paystack subaccount/split-payment and Resend webhook requirements
+- [ ] Complete attached dynamic event, digital-pass, PIN gate, and management portal requirements
+- [ ] Complete attached SEO exclusions, environment safety, and expanded regression validation
+- [x] Accept and normalize Kenyan phone formats including 0116, 0723, 07xx, 01xx, and +254 numbers in checkout
+- [x] Add regression tests for Kenyan phone validation and normalization
+- [ ] Implement the attached multi-tenant requirements within the existing React/Vite managed architecture rather than migrating to Next.js
+- [ ] Preserve current Vercel API routing and existing admin authentication while adding the new platform modules
