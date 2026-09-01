@@ -7,7 +7,9 @@ import { registerOAuthRoutes } from "./oauth";
 import { registerStorageProxy } from "./storageProxy";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
+import { registerAdminRoutes } from "../adminAuth";
 import { registerTicketingRoutes } from "../ticketing";
+import { requireAdmin } from "../adminAuth";
 import { serveStatic, setupVite } from "./vite";
 
 function isPortAvailable(port: number): Promise<boolean> {
@@ -38,7 +40,8 @@ async function startServer() {
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   registerStorageProxy(app);
   registerOAuthRoutes(app);
-  registerTicketingRoutes(app);
+  registerAdminRoutes(app);
+  registerTicketingRoutes(app, undefined, requireAdmin);
   // tRPC API
   app.use(
     "/api/trpc",

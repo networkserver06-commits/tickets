@@ -5,7 +5,7 @@ import { sdk } from "./_core/sdk";
 type Handler = (req: any, res: any) => unknown;
 function harness(db: any) {
   const routes = new Map<string, Handler>();
-  const app = { post: (path: string, handler: Handler) => routes.set(`POST ${path}`, handler), get: (path: string, handler: Handler) => routes.set(`GET ${path}`, handler) } as any;
+  const app = { post: (path: string, ...handlers: Handler[]) => routes.set(`POST ${path}`, handlers[handlers.length - 1]!), get: (path: string, ...handlers: Handler[]) => routes.set(`GET ${path}`, handlers[handlers.length - 1]!) } as any;
   registerTicketingRoutes(app, () => db);
   return routes;
 }

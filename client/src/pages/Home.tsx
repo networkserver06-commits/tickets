@@ -6,8 +6,8 @@ import { Activity, CheckCircle2, ChevronLeft, ChevronRight, CircleDollarSign, Cl
 import { useEffect, useMemo, useState } from "react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { useLocation } from "wouter";
-import { useAuth } from "@/_core/hooks/useAuth";
-import { startLogin } from "@/const";
+import AdminLoginScreen from "@/components/AdminLoginScreen";
+import { useAdminAuth } from "@/hooks/adminAuth";
 import TransactionsTable from "./TransactionsTable";
 
 type Order = { id: string; buyerEmail: string; totalAmount: number; createdAt: string | number | Date };
@@ -22,7 +22,7 @@ export function shouldShowAdminLogin(isAuthenticated: boolean, authLoading: bool
 
 export default function Home() {
   const [location] = useLocation();
-  const { user, loading: authLoading, isAuthenticated, logout } = useAuth();
+  const { admin, loading: authLoading, isAuthenticated, login, logout } = useAdminAuth();
   const [summary, setSummary] = useState<Summary>(emptySummary);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -35,13 +35,11 @@ export default function Home() {
     return () => { active = false; };
   }, [isAuthenticated]);
 
-  if (authLoading) return <LoginScreen loading />;
-  if (shouldShowAdminLogin(isAuthenticated, authLoading)) return <LoginScreen />;
+  if (authLoading) return <AdminLoginScreen loading onLogin={login} />;
+  if (shouldShowAdminLogin(isAuthenticated, authLoading)) return <AdminLoginScreen onLogin={login} />;
   const adminPath = location.replace(/^\/admin/, "") || "/";
-  return <DashboardLayout>{adminPath === "/" ? <Overview summary={summary} loading={loading} error={error} onRetry={() => window.location.reload()} /> : <SubPage path={adminPath} summary={summary} loading={loading} error={error} />}</DashboardLayout>;
+  return <DashboardLayout username={admin?.username} onLogout={logout}>{adminPath === "/" ? <Overview summary={summary} loading={loading} error={error} onRetry={() => window.location.reload()} /> : <SubPage path={adminPath} summary={summary} loading={loading} error={error} />}</DashboardLayout>;
 }
-
-function LoginScreen({ loading = false }: { loading?: boolean }) { return <div className="grid min-h-screen place-items-center bg-slate-950 px-5"><div className="w-full max-w-sm text-center"><span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-indigo-600 text-white shadow-xl shadow-indigo-600/20"><Ticket className="h-7 w-7" /></span><p className="mt-7 text-xs font-semibold uppercase tracking-[0.2em] text-indigo-300">Passage admin</p><h1 className="mt-3 text-3xl font-semibold tracking-tight text-white">Your event, in control.</h1><p className="mt-3 leading-6 text-slate-400">Sign in to review orders, manage tickets, and verify guests at the door.</p>{loading ? <div className="mx-auto mt-8 h-12 w-full animate-pulse rounded-xl bg-white/10" /> : <Button onClick={() => startLogin()} className="mt-8 h-12 w-full rounded-xl bg-white text-slate-950 hover:bg-slate-100">Sign in to continue <TrendingUp className="ml-2 h-4 w-4" /></Button>}<p className="mt-6 text-xs text-slate-600">Admin access is protected by secure OAuth.</p></div></div>; }
 
 function Overview({ summary, loading, error, onRetry }: { summary: Summary; loading: boolean; error: string; onRetry: () => void }) {
   const ticketsSold = summary.tickets.length;
