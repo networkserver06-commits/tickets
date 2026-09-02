@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { ensureTicketSchema } from "../server/ticketDb.js";
 
 function pathname(req: VercelRequest) {
   return new URL(req.url || "/", `https://${req.headers.host || "localhost"}`)
@@ -9,6 +10,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader("Cache-Control", "no-store, max-age=0");
   try {
     const path = pathname(req);
+    const databaseRoute =
+      path.startsWith("/api/trpc/") ||
+      path === "/api/webhook/paystack" ||
+      path === "/api/dashboard/summary" ||
+      path === "/api/tickets/verify" ||
+      path.startsWith("/api/tickets/") ||
+      path === "/api/gate/checkin" ||
+      path.startsWith("/api/management/") ||
+      /^\/api\/events\/[^/]+$/.test(path);
+    if (databaseRoute && !(await ensureTicketSchema())) {
+      res.status(503).json({ error: "Database schema unavailable" });
+      return;
+    }
 
     if (path.startsWith("/api/trpc/")) {
       const { default: app } = await import("./_trpcApp.js");
