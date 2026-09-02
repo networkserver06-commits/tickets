@@ -708,6 +708,17 @@ function SubPage({
         : path === "/transactions"
           ? "Transactions"
           : "Settings";
+  const [paymentStatus, setPaymentStatus] = useState<{ paystackConfigured: boolean; tursoConfigured: boolean; ready: boolean } | null>(null);
+  useEffect(() => {
+    if (title !== "Settings") return;
+    fetch("/api/management/status", { credentials: "same-origin", cache: "no-store" })
+      .then(response => response.json().then(body => ({ response, body })))
+      .then(({ response, body }) => {
+        if (!response.ok) throw new Error(body.error || "Unable to read payment status");
+        setPaymentStatus(body);
+      })
+      .catch(() => setPaymentStatus(null));
+  }, [title]);
   return (
     <div className="space-y-8">
       <div>
@@ -812,13 +823,15 @@ function SubPage({
                 <div>
                   <h2 className="font-semibold">Payment connection</h2>
                   <p className="mt-1 text-sm leading-6 text-slate-500">
-                    Add PAYSTACK_SECRET_KEY, TURSO_DATABASE_URL, and
-                    TURSO_AUTH_TOKEN in Vercel before going live. Secrets are
-                    read only on the server.
+                    Server-side payment and database configuration is checked securely without exposing secret values.
                   </p>
-                  <Badge className="mt-4 border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-50">
-                    Configuration required
-                  </Badge>
+                  {paymentStatus ? (
+                    <Badge className={`mt-4 ${paymentStatus.ready ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-50" : "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-50"}`}>
+                      {paymentStatus.ready ? "Payment connection ready" : `Configuration incomplete · Paystack ${paymentStatus.paystackConfigured ? "ready" : "missing"} · Turso ${paymentStatus.tursoConfigured ? "ready" : "missing"}`}
+                    </Badge>
+                  ) : (
+                    <Badge className="mt-4 border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-50">Checking configuration…</Badge>
+                  )}
                 </div>
               </div>
             </CardContent>
