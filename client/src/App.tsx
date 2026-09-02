@@ -21,6 +21,7 @@ function Router() {
       <Route path={"/admin/tickets"} component={Home} />
       <Route path={"/admin/transactions"} component={Home} />
       <Route path={"/admin/settings"} component={Home} />
+      <Route path={"/management-portal-x9k2"} component={Home} />
       <Route path={"/ticket/:id"} component={TicketPage} />
       <Route path={"/verify/:id"} component={VerifyPage} />
       <Route path={"/gate-checkin-x9k2"} component={GateCheckin} />

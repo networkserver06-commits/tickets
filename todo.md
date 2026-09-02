@@ -50,11 +50,11 @@
 - [x] Add Paystack subaccount creation and split-payment configuration per event
 - [x] Extend Paystack webhook handling for charge.success, tenant/event lookup, unique tickets, and Resend confirmation email
 - [x] Add dynamic event storefront routes and event-backed checkout metadata
-- [ ] Add dynamic digital pass route with buyer/event details and QR gate URL
+- [x] Add dynamic digital pass route with buyer/event details and QR gate URL
 - [x] Add PIN-protected hidden gate check-in route with manual ticket/phone lookup and atomic check-in
-- [ ] Add hidden multi-tenant management portal with client onboarding and event management
+- [x] Add hidden multi-tenant management portal with client onboarding and event management
 - [x] Add robots exclusions for hidden gate and management routes
-- [ ] Add safe environment handling for Resend, gate PIN, Paystack, Turso, and base URL variables
+- [x] Add safe environment handling for Resend, gate PIN, Paystack, Turso, and base URL variables
 - [ ] Add tests for multi-tenant APIs, split payments, email failure handling, and gate check-in
 - [x] Register /admin/transactions in the client router and verify the local transactions page is reachable
 - [x] Enforce admin-role authorization on the Paystack transactions endpoint and test authenticated non-admin rejection
@@ -90,7 +90,14 @@
 - [ ] Add event capacity and availability fields with sold-out validation and storefront states
 - [ ] Replace remaining hardcoded storefront date, venue, and event copy with API-backed fields
 - [ ] Add API regression tests for clients, subaccounts, public events, and Paystack payload binding
-- [ ] Align Paystack checkout metadata with webhook parsing for quantity, full_name, and phone
+- [x] Align Paystack checkout metadata with webhook parsing for quantity, full_name, and phone
 - [ ] Preserve the original Paystack reference on event-linked ticket records
-- [ ] Add phone-based lookup to the hidden gate check-in API and UI
+- [x] Add phone-based lookup to the hidden gate check-in API and UI
 - [ ] Add regression coverage for checkout metadata shape, webhook buyer fields, and gate phone lookup
+- [ ] Add explicit runtime-safe public base URL fallback handling
+- [ ] Unify Vite/Vercel Paystack public key and base URL names across code, docs, and error messages
+- [ ] Add missing-environment regression tests for Resend, gate PIN, Paystack, Turso, and base URL fallback
+- [ ] Make event purchase success navigate to a retrievable pass identifier or support lookup by original Paystack reference
+- [ ] Point ticket QR destinations to the hidden gate/check-in contract
+- [ ] Add a dedicated protected hidden management route and portal shell
+- [ ] Add client payout profile edit/update workflow and tests
