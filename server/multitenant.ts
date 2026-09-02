@@ -65,6 +65,13 @@ export async function listEvents() {
   return db.select().from(events);
 }
 
+export async function deleteEvent(id: string) {
+  const db = getTicketDb();
+  if (!db) throw new Error("Turso database is not configured");
+  await db.delete(events).where(eq(events.id, id));
+  return { id };
+}
+
 export async function createEvent(input: Omit<InsertEvent, "createdAt">) {
   if (!validateSubaccountCode(input.paystackSubaccountCode))
     throw new Error("Invalid Paystack subaccount code");

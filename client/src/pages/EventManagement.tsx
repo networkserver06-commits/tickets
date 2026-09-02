@@ -48,6 +48,19 @@ export default function EventManagement() {
     });
   }, []);
 
+  async function removeEvent(id: string, title: string) {
+    if (!window.confirm(`Remove the event “${title}”? This cannot be undone.`)) return;
+    setMessage("");
+    const response = await fetch(`/api/management/events?id=${encodeURIComponent(id)}`, { method: "DELETE", credentials: "same-origin" });
+    const body = await readJson(response);
+    if (!response.ok) {
+      setMessage(body.error || "Unable to remove event");
+      return;
+    }
+    setMessage("Event removed.");
+    await load();
+  }
+
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     if (saving) return;
@@ -101,7 +114,7 @@ export default function EventManagement() {
           <div key={e.id} className="rounded-xl border bg-white p-4">
             <p className="font-medium">{e.title}</p>
             <p className="text-sm text-slate-500">{e.eventDate || "Date to be announced"}{e.venue ? ` · ${e.venue}` : ""}</p>
-            <a className="mt-2 block text-sm font-medium text-indigo-600 hover:underline" href={`/event/${encodeURIComponent(e.id)}`}>Open customer checkout</a>
+            <div className="mt-2 flex flex-wrap items-center gap-4"><a className="text-sm font-medium text-indigo-600 hover:underline" href={`/event/${encodeURIComponent(e.id)}`}>Open customer checkout</a><button type="button" className="text-sm font-medium text-rose-600 hover:underline" onClick={() => void removeEvent(e.id, e.title)}>Remove event</button></div>
           </div>
         ))}
       </div>

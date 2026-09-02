@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import {
   createEvent,
+  deleteEvent,
   listClients,
   listEvents,
   validateSubaccountCode,
@@ -20,6 +21,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       res.status(500).json({
         error: error instanceof Error ? error.message : "Unable to load events",
       });
+    }
+    return;
+  }
+  if (req.method === "DELETE") {
+    const id = String(req.query.id || "").trim();
+    if (!id) {
+      res.status(400).json({ error: "Event id is required" });
+      return;
+    }
+    try {
+      res.status(200).json({ deleted: await deleteEvent(id) });
+    } catch (error) {
+      res.status(400).json({ error: error instanceof Error ? error.message : "Unable to delete event" });
     }
     return;
   }
