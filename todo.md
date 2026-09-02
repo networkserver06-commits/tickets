@@ -67,3 +67,12 @@
 - [x] Add regression tests for Kenyan phone validation and normalization
 - [ ] Implement the attached multi-tenant requirements within the existing React/Vite managed architecture rather than migrating to Next.js
 - [ ] Preserve current Vercel API routing and existing admin authentication while adding the new platform modules
+- [ ] Execute the confirmed full managed-architecture upgrade without migrating away from the current Vercel-compatible scaffold
+- [ ] Validate and checkpoint the complete upgrade before GitHub delivery
+- [ ] Add admin client subaccount create, edit, list, and payout configuration workflow
+- [ ] Add Paystack subaccount API integration with safe server-side secret handling
+- [ ] Bind each live event checkout to its selected client subaccount for split payout
+- [ ] Load live event details and ticket availability for customer purchase
+- [ ] Persist complete buyer name, email, phone, Paystack reference, event, and ticket details after successful payment
+- [ ] Add end-to-end tests for subaccounts, live event purchase data, and payout metadata
+- [ ] Validate and push the final implementation to GitHub main
