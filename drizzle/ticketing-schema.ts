@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const orders = sqliteTable("orders", {
   id: text("id").primaryKey(),
@@ -29,7 +29,11 @@ export const events = sqliteTable("events", {
   clientId: text("client_id").notNull().references(() => clients.id),
   title: text("title").notNull(),
   description: text("description"),
+  eventDate: text("event_date"),
+  venue: text("venue"),
   ticketPrice: integer("ticket_price").notNull(),
+  capacity: integer("capacity").notNull().default(500),
+  soldCount: integer("sold_count").notNull().default(0),
   paystackSubaccountCode: text("paystack_subaccount_code").notNull(),
   createdAt: text("created_at").notNull().default("CURRENT_TIMESTAMP"),
 });
@@ -44,7 +48,7 @@ export const eventTickets = sqliteTable("event_tickets", {
   status: text("status", { enum: ["valid", "used"] }).notNull().default("valid"),
   scannedAt: text("scanned_at"),
   createdAt: text("created_at").notNull().default("CURRENT_TIMESTAMP"),
-}, (table) => ({ paystackRefUnique: uniqueIndex("event_tickets_paystack_ref_unique").on(table.paystackRef) }));
+});
 
 export const ordersRelations = relations(orders, ({ many }) => ({ tickets: many(tickets) }));
 export const ticketsRelations = relations(tickets, ({ one }) => ({ order: one(orders, { fields: [tickets.orderId], references: [orders.id] }) }));

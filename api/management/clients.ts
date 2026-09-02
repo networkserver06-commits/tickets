@@ -1,11 +1,17 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { createClient, listClients, validateSubaccountCode } from "../../server/multitenant";
+import { createClient, listClients, updateClient, validateSubaccountCode } from "../../server/multitenant";
 import { getAdminUsername } from "../../server/adminAuth";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!getAdminUsername(req as any)) { res.status(401).json({ error: "Admin authentication required" }); return; }
   if (req.method === "GET") {
     try { res.status(200).json({ clients: await listClients() }); } catch (error) { res.status(500).json({ error: error instanceof Error ? error.message : "Unable to load clients" }); }
+    return;
+  }
+  if (req.method === "PUT") {
+    const body = (req.body || {}) as Record<string, unknown>; const id = String(body.id || "").trim();
+    if (!id) { res.status(400).json({ error: "Client id is required" }); return; }
+    try { res.status(200).json({ client: await updateClient(id, { businessName: body.businessName ? String(body.businessName).trim() : undefined, email: body.email ? String(body.email).trim() : undefined, phone: body.phone ? String(body.phone).trim() : undefined, paystackSubaccountCode: body.paystackSubaccountCode ? String(body.paystackSubaccountCode).trim() : undefined, platformFeePercentage: body.platformFeePercentage === undefined ? undefined : Number(body.platformFeePercentage) }) }); } catch (error) { res.status(400).json({ error: error instanceof Error ? error.message : "Unable to update client" }); }
     return;
   }
   if (req.method !== "POST") { res.status(405).json({ error: "Method not allowed" }); return; }

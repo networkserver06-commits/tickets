@@ -10,7 +10,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const id = String(req.query.id || "");
   if (!id) { res.status(400).json({ error: "Event id is required" }); return; }
   try {
-    const rows = await db.select({ id: events.id, title: events.title, description: events.description, ticketPrice: events.ticketPrice, paystackSubaccountCode: events.paystackSubaccountCode }).from(events).where(eq(events.id, id)).limit(1);
+    const rows = await db.select({ id: events.id, title: events.title, description: events.description, eventDate: events.eventDate, venue: events.venue, ticketPrice: events.ticketPrice, capacity: events.capacity, soldCount: events.soldCount, paystackSubaccountCode: events.paystackSubaccountCode }).from(events).where(eq(events.id, id)).limit(1);
     if (!rows[0]) { res.status(404).json({ error: "Event not found" }); return; }
     res.status(200).json({ event: rows[0] });
   } catch (error) { res.status(500).json({ error: error instanceof Error ? error.message : "Unable to load event" }); }

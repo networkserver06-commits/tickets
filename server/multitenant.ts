@@ -21,6 +21,13 @@ export async function createClient(input: Omit<InsertClient, "createdAt">) {
   return record;
 }
 
+export async function updateClient(id: string, input: Partial<Omit<InsertClient, "id" | "createdAt">>) {
+  if (input.paystackSubaccountCode && !validateSubaccountCode(input.paystackSubaccountCode)) throw new Error("Invalid Paystack subaccount code");
+  const db = getTicketDb(); if (!db) throw new Error("Turso database is not configured");
+  await db.update(clients).set(input).where(eq(clients.id, id));
+  const rows = await db.select().from(clients).where(eq(clients.id, id)).limit(1); return rows[0];
+}
+
 export async function listEvents() {
   const db = getTicketDb();
   if (!db) throw new Error("Turso database is not configured");

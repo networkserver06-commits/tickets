@@ -9,6 +9,7 @@ import EventStorefront from "./pages/EventStorefront";
 import TicketPage from "./pages/TicketPage";
 import VerifyPage from "./pages/VerifyPage";
 import GateCheckin from "./pages/GateCheckin";
+import ManagementPortal from "./pages/ManagementPortal";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -21,7 +22,7 @@ function Router() {
       <Route path={"/admin/tickets"} component={Home} />
       <Route path={"/admin/transactions"} component={Home} />
       <Route path={"/admin/settings"} component={Home} />
-      <Route path={"/management-portal-x9k2"} component={Home} />
+      <Route path={"/management-portal-x9k2"} component={ManagementPortal} />
       <Route path={"/ticket/:id"} component={TicketPage} />
       <Route path={"/verify/:id"} component={VerifyPage} />
       <Route path={"/gate-checkin-x9k2"} component={GateCheckin} />

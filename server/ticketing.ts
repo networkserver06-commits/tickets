@@ -1,5 +1,5 @@
 import * as crypto from "node:crypto";
-import { and, desc, eq, like } from "drizzle-orm";
+import { and, desc, eq, like, sql } from "drizzle-orm";
 import type { Express, Request, RequestHandler, Response } from "express";
 import { nanoid } from "nanoid";
 import { events, eventTickets, orders, tickets } from "../drizzle/ticketing-schema.js";
@@ -66,8 +66,8 @@ export function registerTicketingRoutes(app: Express, dbFactory: () => any = get
     const db = dbFactory();
     if (!db) return res.status(503).json({ error: "Database unavailable" });
     const result = await db.select({ id: tickets.id, status: tickets.status, orderId: tickets.orderId, buyerEmail: orders.buyerEmail }).from(tickets).leftJoin(orders, eq(tickets.orderId, orders.id)).where(eq(tickets.id, ticketId)).limit(1);
-    const eventResult = await db.select({ id: eventTickets.id, status: eventTickets.status, buyerName: eventTickets.buyerName, buyerEmail: eventTickets.buyerEmail, buyerPhone: eventTickets.buyerPhone, paystackRef: eventTickets.paystackRef, eventId: events.id, eventTitle: events.title }).from(eventTickets).leftJoin(events, eq(eventTickets.eventId, events.id)).where(eq(eventTickets.id, ticketId)).limit(1);
-    const referenceResult = result[0] || eventResult[0] ? [] : await db.select({ id: eventTickets.id, status: eventTickets.status, buyerName: eventTickets.buyerName, buyerEmail: eventTickets.buyerEmail, buyerPhone: eventTickets.buyerPhone, paystackRef: eventTickets.paystackRef, eventId: events.id, eventTitle: events.title }).from(eventTickets).leftJoin(events, eq(eventTickets.eventId, events.id)).where(like(eventTickets.paystackRef, `${ticketId}%`)).limit(1);
+    const eventResult = await db.select({ id: eventTickets.id, status: eventTickets.status, buyerName: eventTickets.buyerName, buyerEmail: eventTickets.buyerEmail, buyerPhone: eventTickets.buyerPhone, paystackRef: eventTickets.paystackRef, eventId: events.id, eventTitle: events.title, eventDate: events.eventDate, venue: events.venue }).from(eventTickets).leftJoin(events, eq(eventTickets.eventId, events.id)).where(eq(eventTickets.id, ticketId)).limit(1);
+    const referenceResult = result[0] || eventResult[0] ? [] : await db.select({ id: eventTickets.id, status: eventTickets.status, buyerName: eventTickets.buyerName, buyerEmail: eventTickets.buyerEmail, buyerPhone: eventTickets.buyerPhone, paystackRef: eventTickets.paystackRef, eventId: events.id, eventTitle: events.title, eventDate: events.eventDate, venue: events.venue }).from(eventTickets).leftJoin(events, eq(eventTickets.eventId, events.id)).where(like(eventTickets.paystackRef, `${ticketId}%`)).limit(1);
     const ticket = result[0] || eventResult[0] || referenceResult[0];
     if (!ticket) return res.status(404).json({ error: "Ticket not found" });
     return res.json({ ticket });
@@ -139,8 +139,8 @@ async function processWebhook(payload: any, dbFactory: () => any = getTicketDb) 
     await tx.insert(orders).values({ id: reference, buyerEmail, totalAmount: Number(payload.data.amount || 0), createdAt: new Date() });
     await tx.insert(tickets).values(Array.from({ length: quantity }, () => ({ id: `tkt_${nanoid(16)}`, orderId: reference, status: "valid" as const })));
     if (eventId) {
-      const matchingEvent = await tx.select({ id: events.id }).from(events).where(eq(events.id, eventId)).limit(1);
-      if (matchingEvent[0]) { eventTitle = String(metadata.eventTitle || ""); await tx.insert(eventTickets).values(Array.from({ length: quantity }, () => ({ id: `evt_tkt_${nanoid(16)}`, eventId, buyerName, buyerEmail, buyerPhone, paystackRef: `${reference}-${nanoid(8)}`, status: "valid" as const }))); }
+      const matchingEvent = await tx.select({ id: events.id, capacity: events.capacity, soldCount: events.soldCount }).from(events).where(eq(events.id, eventId)).limit(1);
+      if (matchingEvent[0]) { if (matchingEvent[0].soldCount + quantity > matchingEvent[0].capacity) throw new Error("Event is sold out"); eventTitle = String(metadata.eventTitle || ""); await tx.insert(eventTickets).values(Array.from({ length: quantity }, () => ({ id: `evt_tkt_${nanoid(16)}`, eventId, buyerName, buyerEmail, buyerPhone, paystackRef: reference, status: "valid" as const }))); await tx.update(events).set({ soldCount: sql`${events.soldCount} + ${quantity}` }).where(eq(events.id, eventId)); }
     }
   });
   try { await sendTicketConfirmation({ to: buyerEmail, buyerName, reference, eventTitle }); } catch (error) { console.error("[Resend confirmation]", error); }

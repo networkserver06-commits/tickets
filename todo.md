@@ -55,49 +55,60 @@
 - [x] Add hidden multi-tenant management portal with client onboarding and event management
 - [x] Add robots exclusions for hidden gate and management routes
 - [x] Add safe environment handling for Resend, gate PIN, Paystack, Turso, and base URL variables
-- [ ] Add tests for multi-tenant APIs, split payments, email failure handling, and gate check-in
+- [x] Add tests for multi-tenant APIs, split payments, email failure handling, and gate check-in
 - [x] Register /admin/transactions in the client router and verify the local transactions page is reachable
 - [x] Enforce admin-role authorization on the Paystack transactions endpoint and test authenticated non-admin rejection
 - [x] Add tests for missing Paystack secret and upstream Paystack failure responses
-- [ ] Complete the attached multi-tenant clients, events, and ticket data model requirements
-- [ ] Complete attached Paystack subaccount/split-payment and Resend webhook requirements
-- [ ] Complete attached dynamic event, digital-pass, PIN gate, and management portal requirements
-- [ ] Complete attached SEO exclusions, environment safety, and expanded regression validation
+- [x] Complete the attached multi-tenant clients, events, and ticket data model requirements
+- [x] Complete attached Paystack subaccount/split-payment and Resend webhook requirements
+- [x] Complete attached dynamic event, digital-pass, PIN gate, and management portal requirements
+- [x] Complete attached SEO exclusions, environment safety, and expanded regression validation
 - [x] Accept and normalize Kenyan phone formats including 0116, 0723, 07xx, 01xx, and +254 numbers in checkout
 - [x] Add regression tests for Kenyan phone validation and normalization
 - [x] Implement the attached multi-tenant requirements within the existing React/Vite managed architecture rather than migrating to Next.js
 - [x] Preserve current Vercel API routing and existing admin authentication while adding the new platform modules
 - [x] Execute the confirmed full managed-architecture upgrade without migrating away from the current Vercel-compatible scaffold
-- [ ] Validate and checkpoint the complete upgrade before GitHub delivery
-- [ ] Add admin client subaccount create, edit, list, and payout configuration workflow
-- [ ] Add Paystack subaccount API integration with safe server-side secret handling
+- [x] Validate and checkpoint the complete upgrade before GitHub delivery
+- [x] Add admin client subaccount create, edit, list, and payout configuration workflow
+- [x] Add Paystack subaccount API integration with safe server-side secret handling
 - [x] Bind each live event checkout to its selected client subaccount for split payout
 - [x] Load live event details and ticket availability for customer purchase
 - [x] Persist complete buyer name, email, phone, Paystack reference, event, and ticket details after successful payment
-- [ ] Add end-to-end tests for subaccounts, live event purchase data, and payout metadata
-- [ ] Validate and push the final implementation to GitHub main
+- [x] Add end-to-end tests for subaccounts, live event purchase data, and payout metadata
+- [x] Validate and push the final implementation to GitHub main
 - [x] Add multi-tenant client records with business, contact, fee, and Paystack subaccount fields
 - [x] Add event records linked to clients and their payout subaccount codes
-- [ ] Add admin client subaccount create, edit, list, and payout configuration workflow
+- [x] Add admin client subaccount create, edit, list, and payout configuration workflow
 - [x] Add secure Paystack subaccount API integration and event split-payment metadata
 - [x] Persist event-linked buyer and ticket purchase details through the webhook
 - [x] Add tests for client, subaccount, event binding, and payout metadata flows
-- [ ] Validate, checkpoint, and push the completed multi-tenant payout upgrade to GitHub main
+- [x] Validate, checkpoint, and push the completed multi-tenant payout upgrade to GitHub main
 - [x] Bind checkout to live event data and pass event.paystackSubaccountCode as Paystack subaccount
 - [x] Replace hardcoded storefront event and price with event-backed API data
 - [x] Add regression tests for event-to-subaccount binding and emitted split-payment metadata
 - [x] Add eventId and event title to Paystack checkout metadata and persist them through webhook processing
-- [ ] Add event capacity and availability fields with sold-out validation and storefront states
-- [ ] Replace remaining hardcoded storefront date, venue, and event copy with API-backed fields
-- [ ] Add API regression tests for clients, subaccounts, public events, and Paystack payload binding
+- [x] Add event capacity and availability fields with sold-out validation and storefront states
+- [x] Replace remaining hardcoded storefront date, venue, and event copy with API-backed fields
+- [x] Add API regression tests for clients, subaccounts, public events, and Paystack payload binding
 - [x] Align Paystack checkout metadata with webhook parsing for quantity, full_name, and phone
-- [ ] Preserve the original Paystack reference on event-linked ticket records
+- [x] Preserve the original Paystack reference on event-linked ticket records
 - [x] Add phone-based lookup to the hidden gate check-in API and UI
-- [ ] Add regression coverage for checkout metadata shape, webhook buyer fields, and gate phone lookup
-- [ ] Add explicit runtime-safe public base URL fallback handling
-- [ ] Unify Vite/Vercel Paystack public key and base URL names across code, docs, and error messages
-- [ ] Add missing-environment regression tests for Resend, gate PIN, Paystack, Turso, and base URL fallback
-- [ ] Make event purchase success navigate to a retrievable pass identifier or support lookup by original Paystack reference
-- [ ] Point ticket QR destinations to the hidden gate/check-in contract
-- [ ] Add a dedicated protected hidden management route and portal shell
-- [ ] Add client payout profile edit/update workflow and tests
+- [x] Add regression coverage for checkout metadata shape, webhook buyer fields, and gate phone lookup
+- [x] Add explicit runtime-safe public base URL fallback handling
+- [x] Unify Vite/Vercel Paystack public key and base URL names across code, docs, and error messages
+- [x] Add missing-environment regression tests for Resend, gate PIN, Paystack, Turso, and base URL fallback
+- [x] Make event purchase success navigate to a retrievable pass identifier or support lookup by original Paystack reference
+- [x] Point ticket QR destinations to the hidden gate/check-in contract
+- [x] Add a dedicated protected hidden management route and portal shell
+- [x] Add client payout profile edit/update workflow and tests
+- [x] Present one unified Vite/Vercel public environment contract in code, README, and error text
+- [x] Create a dedicated protected management portal shell for /management-portal-x9k2
+- [x] Protect the dedicated management portal with the admin authentication gate
+- [x] Replace hardcoded storefront marketing copy with structured event API fields or explicit fallback-only content
+- [x] Add regression tests for client payout profile edit/update success and validation failure cases
+- [x] Harden client payout workflow with typed client models and distinct create/update success/error states
+- [x] Add handler-level Vitest coverage for clients, subaccounts, public events, and gate check-in
+- [x] Add webhook tests for split-payment metadata, event persistence, and non-blocking Resend failures
+- [x] Add integration-style coverage for purchase reference lookup and phone gate lookup
+- [x] Refine client payout create/update errors and test both user-facing flows
+- [x] Reassess broad umbrella checklist items only after dependent tests are complete
