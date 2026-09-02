@@ -1,5 +1,5 @@
 import { createClient } from "@libsql/client/web";
-import { drizzle } from "drizzle-orm/libsql";
+import { drizzle } from "drizzle-orm/libsql/web";
 import * as schema from "./_ticketingSchema.js";
 
 let db: ReturnType<typeof drizzle<typeof schema>> | null = null;
