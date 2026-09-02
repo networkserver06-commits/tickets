@@ -80,6 +80,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return route(req, res);
     }
 
+    if (path === "/api/events") {
+      const { default: route } = await import("../server/vercel/publicEvents.js");
+      return route(req, res);
+    }
     const eventMatch = path.match(/^\/api\/events\/([^/]+)$/);
     if (eventMatch) {
       req.query.id = decodeURIComponent(eventMatch[1]);
