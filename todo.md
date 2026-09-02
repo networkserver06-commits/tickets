@@ -46,10 +46,10 @@
 - [x] Add recent transactions admin view with payment status badges and KSh amounts
 - [x] Add loading, empty, error, and responsive states for transactions
 - [x] Add tests for transaction normalization and API error handling
-- [ ] Add multi-tenant clients, events, and tickets schema fields and relations for Turso/Drizzle
-- [ ] Add Paystack subaccount creation and split-payment configuration per event
+- [x] Add multi-tenant clients, events, and tickets schema fields and relations for Turso/Drizzle
+- [x] Add Paystack subaccount creation and split-payment configuration per event
 - [ ] Extend Paystack webhook handling for charge.success, tenant/event lookup, unique tickets, and Resend confirmation email
-- [ ] Add dynamic event storefront routes and event-backed checkout metadata
+- [x] Add dynamic event storefront routes and event-backed checkout metadata
 - [ ] Add dynamic digital pass route with buyer/event details and QR gate URL
 - [ ] Add PIN-protected hidden gate check-in route with manual ticket/phone lookup and atomic check-in
 - [ ] Add hidden multi-tenant management portal with client onboarding and event management
@@ -65,14 +65,28 @@
 - [ ] Complete attached SEO exclusions, environment safety, and expanded regression validation
 - [x] Accept and normalize Kenyan phone formats including 0116, 0723, 07xx, 01xx, and +254 numbers in checkout
 - [x] Add regression tests for Kenyan phone validation and normalization
-- [ ] Implement the attached multi-tenant requirements within the existing React/Vite managed architecture rather than migrating to Next.js
-- [ ] Preserve current Vercel API routing and existing admin authentication while adding the new platform modules
-- [ ] Execute the confirmed full managed-architecture upgrade without migrating away from the current Vercel-compatible scaffold
+- [x] Implement the attached multi-tenant requirements within the existing React/Vite managed architecture rather than migrating to Next.js
+- [x] Preserve current Vercel API routing and existing admin authentication while adding the new platform modules
+- [x] Execute the confirmed full managed-architecture upgrade without migrating away from the current Vercel-compatible scaffold
 - [ ] Validate and checkpoint the complete upgrade before GitHub delivery
 - [ ] Add admin client subaccount create, edit, list, and payout configuration workflow
 - [ ] Add Paystack subaccount API integration with safe server-side secret handling
-- [ ] Bind each live event checkout to its selected client subaccount for split payout
-- [ ] Load live event details and ticket availability for customer purchase
+- [x] Bind each live event checkout to its selected client subaccount for split payout
+- [x] Load live event details and ticket availability for customer purchase
 - [ ] Persist complete buyer name, email, phone, Paystack reference, event, and ticket details after successful payment
 - [ ] Add end-to-end tests for subaccounts, live event purchase data, and payout metadata
 - [ ] Validate and push the final implementation to GitHub main
+- [x] Add multi-tenant client records with business, contact, fee, and Paystack subaccount fields
+- [x] Add event records linked to clients and their payout subaccount codes
+- [ ] Add admin client subaccount create, edit, list, and payout configuration workflow
+- [x] Add secure Paystack subaccount API integration and event split-payment metadata
+- [ ] Persist event-linked buyer and ticket purchase details through the webhook
+- [x] Add tests for client, subaccount, event binding, and payout metadata flows
+- [ ] Validate, checkpoint, and push the completed multi-tenant payout upgrade to GitHub main
+- [x] Bind checkout to live event data and pass event.paystackSubaccountCode as Paystack subaccount
+- [x] Replace hardcoded storefront event and price with event-backed API data
+- [x] Add regression tests for event-to-subaccount binding and emitted split-payment metadata
+- [ ] Add eventId and event title to Paystack checkout metadata and persist them through webhook processing
+- [ ] Add event capacity and availability fields with sold-out validation and storefront states
+- [ ] Replace remaining hardcoded storefront date, venue, and event copy with API-backed fields
+- [ ] Add API regression tests for clients, subaccounts, public events, and Paystack payload binding

@@ -9,6 +9,7 @@ import { useLocation } from "wouter";
 import AdminLoginScreen from "@/components/AdminLoginScreen";
 import { useAdminAuth } from "@/hooks/adminAuth";
 import TransactionsTable from "./TransactionsTable";
+import ClientPayouts from "./ClientPayouts";
 
 type Order = { id: string; buyerEmail: string; totalAmount: number; createdAt: string | number | Date };
 type TicketRow = { id: string; orderId: string; status: "valid" | "used" };
@@ -96,6 +97,7 @@ function SubPage({ path, summary, loading, error }: { path: string; summary: Sum
     {error && <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error} Try refreshing when the database connection is available.</div>}
     {title === "Orders" && <OrdersTable orders={summary.orders} tickets={summary.tickets} loading={loading} />}
     {title === "Transactions" && <TransactionsTable />}
+    {title === "Settings" && <ClientPayouts />}
     {title === "Tickets" && <Card className="border-0 bg-white p-8 shadow-[0_16px_45px_rgba(15,23,42,0.06)]">{loading ? <div className="grid gap-4 sm:grid-cols-3">{[1, 2, 3].map(i => <div key={i} className="h-32 animate-pulse rounded-2xl bg-slate-100" />)}</div> : summary.tickets.length === 0 ? <EmptyState icon={Ticket} title="No tickets issued" description="Tickets created from successful payments will appear here." /> : <div className="grid gap-4 sm:grid-cols-3"><Metric label="All tickets" value={String(summary.tickets.length)} detail="Issued tickets" icon={Ticket} tint="violet" /><Metric label="Valid" value={String(summary.tickets.filter(t => t.status === "valid").length)} detail="Ready to scan" icon={CheckCircle2} tint="emerald" /><Metric label="Used" value={String(summary.tickets.filter(t => t.status === "used").length)} detail="Already admitted" icon={XCircle} tint="slate" /></div>}</Card>}
     {title === "Tickets" && !loading && summary.tickets.length > 0 && <TicketTable tickets={summary.tickets} />}
     {title === "Settings" && (loading ? <Card className="max-w-2xl border-0 bg-white"><CardContent className="space-y-4 p-8"><div className="h-5 w-40 animate-pulse rounded bg-slate-100" /><div className="h-4 w-full animate-pulse rounded bg-slate-100" /><div className="h-4 w-3/4 animate-pulse rounded bg-slate-100" /></CardContent></Card> : <Card className="max-w-2xl border-0 bg-white shadow-[0_16px_45px_rgba(15,23,42,0.06)]"><CardContent className="p-8"><div className="flex items-start gap-4"><span className="grid h-11 w-11 place-items-center rounded-xl bg-indigo-50 text-indigo-600"><Settings className="h-5 w-5" /></span><div><h2 className="font-semibold">Payment connection</h2><p className="mt-1 text-sm leading-6 text-slate-500">Add PAYSTACK_SECRET_KEY, TURSO_DATABASE_URL, and TURSO_AUTH_TOKEN in Vercel before going live. Secrets are read only on the server.</p><Badge className="mt-4 border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-50">Configuration required</Badge></div></div></CardContent></Card>)}
