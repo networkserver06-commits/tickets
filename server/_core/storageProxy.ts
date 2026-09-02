@@ -1,7 +1,8 @@
-import type { Express } from "express";
+import express from "express";
+import type { Application } from "express-serve-static-core";
 import { ENV } from "./env";
 
-export function registerStorageProxy(app: Express) {
+export function registerStorageProxy(app: Application) {
   app.get("/manus-storage/*", async (req, res) => {
     const key = (req.params as Record<string, string>)[0];
     if (!key) {
@@ -17,7 +18,7 @@ export function registerStorageProxy(app: Express) {
     try {
       const forgeUrl = new URL(
         "v1/storage/presign/get",
-        ENV.forgeApiUrl.replace(/\/+$/, "") + "/",
+        ENV.forgeApiUrl.replace(/\/+$/, "") + "/"
       );
       forgeUrl.searchParams.set("path", key);
 
@@ -27,7 +28,9 @@ export function registerStorageProxy(app: Express) {
 
       if (!forgeResp.ok) {
         const body = await forgeResp.text().catch(() => "");
-        console.error(`[StorageProxy] forge error: ${forgeResp.status} ${body}`);
+        console.error(
+          `[StorageProxy] forge error: ${forgeResp.status} ${body}`
+        );
         res.status(502).send("Storage backend error");
         return;
       }

@@ -1,4 +1,5 @@
-import type { CookieOptions, Request } from "express";
+import type { CookieOptions } from "express";
+import type { Request } from "express-serve-static-core";
 
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
 

@@ -1,10 +1,11 @@
 import * as crypto from "node:crypto";
 import { and, desc, eq, like, sql } from "drizzle-orm";
-import express, {
-  type Request,
-  type RequestHandler,
-  type Response,
-} from "express";
+import express from "express";
+import type {
+  Request,
+  RequestHandler,
+  Response,
+} from "express-serve-static-core";
 
 type ExpressApp = ReturnType<typeof express>;
 import { nanoid } from "nanoid";
@@ -179,26 +180,22 @@ export function registerTicketingRoutes(
         .limit(1);
       if (legacy[0]) {
         if (legacy[0].status === "used")
-          return res
-            .status(409)
-            .json({
-              valid: false,
-              status: "used",
-              error: "Ticket has already been used",
-            });
+          return res.status(409).json({
+            valid: false,
+            status: "used",
+            error: "Ticket has already been used",
+          });
         const updated = await db
           .update(tickets)
           .set({ status: "used" })
           .where(and(eq(tickets.id, ticketId), eq(tickets.status, "valid")))
           .returning({ id: tickets.id });
         if (!updated.length)
-          return res
-            .status(409)
-            .json({
-              valid: false,
-              status: "used",
-              error: "Ticket has already been used",
-            });
+          return res.status(409).json({
+            valid: false,
+            status: "used",
+            error: "Ticket has already been used",
+          });
         return res.json({ valid: true, status: "used", ticketId });
       }
       const eventTicket = await db
@@ -211,13 +208,11 @@ export function registerTicketingRoutes(
           .status(404)
           .json({ valid: false, error: "Ticket not found" });
       if (eventTicket[0].status === "used")
-        return res
-          .status(409)
-          .json({
-            valid: false,
-            status: "used",
-            error: "Ticket has already been used",
-          });
+        return res.status(409).json({
+          valid: false,
+          status: "used",
+          error: "Ticket has already been used",
+        });
       const updated = await db
         .update(eventTickets)
         .set({ status: "used", scannedAt: new Date().toISOString() })
@@ -226,13 +221,11 @@ export function registerTicketingRoutes(
         )
         .returning({ id: eventTickets.id });
       if (!updated.length)
-        return res
-          .status(409)
-          .json({
-            valid: false,
-            status: "used",
-            error: "Ticket has already been used",
-          });
+        return res.status(409).json({
+          valid: false,
+          status: "used",
+          error: "Ticket has already been used",
+        });
       return res.json({ valid: true, status: "used", ticketId });
     }
   );
@@ -260,12 +253,9 @@ export function registerTicketingRoutes(
       );
       const payload = (await response.json()) as any;
       if (!response.ok || payload?.status === false)
-        return res
-          .status(502)
-          .json({
-            error:
-              payload?.message || "Unable to retrieve Paystack transactions",
-          });
+        return res.status(502).json({
+          error: payload?.message || "Unable to retrieve Paystack transactions",
+        });
       return res.json({
         transactions: Array.isArray(payload?.data)
           ? payload.data.map(normalizePaystackTransaction)
@@ -358,23 +348,19 @@ async function processWebhook(
         throw new Error("Payment amount does not match event price");
       eventTitle = matchingEvent.title;
     }
-    await tx
-      .insert(orders)
-      .values({
-        id: reference,
-        buyerEmail,
-        totalAmount: amount,
-        createdAt: new Date(),
-      });
-    await tx
-      .insert(tickets)
-      .values(
-        Array.from({ length: quantity }, () => ({
-          id: `tkt_${nanoid(16)}`,
-          orderId: reference,
-          status: "valid" as const,
-        }))
-      );
+    await tx.insert(orders).values({
+      id: reference,
+      buyerEmail,
+      totalAmount: amount,
+      createdAt: new Date(),
+    });
+    await tx.insert(tickets).values(
+      Array.from({ length: quantity }, () => ({
+        id: `tkt_${nanoid(16)}`,
+        orderId: reference,
+        status: "valid" as const,
+      }))
+    );
     if (matchingEvent) {
       const reserved = await tx
         .update(events)
@@ -387,19 +373,17 @@ async function processWebhook(
         )
         .returning({ id: events.id });
       if (!reserved.length) throw new Error("Event is sold out");
-      await tx
-        .insert(eventTickets)
-        .values(
-          Array.from({ length: quantity }, () => ({
-            id: `evt_tkt_${nanoid(16)}`,
-            eventId,
-            buyerName,
-            buyerEmail,
-            buyerPhone,
-            paystackRef: reference,
-            status: "valid" as const,
-          }))
-        );
+      await tx.insert(eventTickets).values(
+        Array.from({ length: quantity }, () => ({
+          id: `evt_tkt_${nanoid(16)}`,
+          eventId,
+          buyerName,
+          buyerEmail,
+          buyerPhone,
+          paystackRef: reference,
+          status: "valid" as const,
+        }))
+      );
     }
   });
   try {

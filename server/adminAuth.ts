@@ -1,10 +1,11 @@
 import * as crypto from "node:crypto";
 import { parse as parseCookie } from "cookie";
-import express, {
-  type NextFunction,
-  type Request,
-  type Response,
-} from "express";
+import express from "express";
+import type {
+  NextFunction,
+  Request,
+  Response,
+} from "express-serve-static-core";
 
 type ExpressApp = ReturnType<typeof express>;
 import { getSessionCookieOptions } from "./_core/cookies";
