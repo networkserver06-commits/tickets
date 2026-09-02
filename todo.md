@@ -48,12 +48,12 @@
 - [x] Add tests for transaction normalization and API error handling
 - [x] Add multi-tenant clients, events, and tickets schema fields and relations for Turso/Drizzle
 - [x] Add Paystack subaccount creation and split-payment configuration per event
-- [ ] Extend Paystack webhook handling for charge.success, tenant/event lookup, unique tickets, and Resend confirmation email
+- [x] Extend Paystack webhook handling for charge.success, tenant/event lookup, unique tickets, and Resend confirmation email
 - [x] Add dynamic event storefront routes and event-backed checkout metadata
 - [ ] Add dynamic digital pass route with buyer/event details and QR gate URL
-- [ ] Add PIN-protected hidden gate check-in route with manual ticket/phone lookup and atomic check-in
+- [x] Add PIN-protected hidden gate check-in route with manual ticket/phone lookup and atomic check-in
 - [ ] Add hidden multi-tenant management portal with client onboarding and event management
-- [ ] Add robots exclusions for hidden gate and management routes
+- [x] Add robots exclusions for hidden gate and management routes
 - [ ] Add safe environment handling for Resend, gate PIN, Paystack, Turso, and base URL variables
 - [ ] Add tests for multi-tenant APIs, split payments, email failure handling, and gate check-in
 - [x] Register /admin/transactions in the client router and verify the local transactions page is reachable
@@ -73,20 +73,24 @@
 - [ ] Add Paystack subaccount API integration with safe server-side secret handling
 - [x] Bind each live event checkout to its selected client subaccount for split payout
 - [x] Load live event details and ticket availability for customer purchase
-- [ ] Persist complete buyer name, email, phone, Paystack reference, event, and ticket details after successful payment
+- [x] Persist complete buyer name, email, phone, Paystack reference, event, and ticket details after successful payment
 - [ ] Add end-to-end tests for subaccounts, live event purchase data, and payout metadata
 - [ ] Validate and push the final implementation to GitHub main
 - [x] Add multi-tenant client records with business, contact, fee, and Paystack subaccount fields
 - [x] Add event records linked to clients and their payout subaccount codes
 - [ ] Add admin client subaccount create, edit, list, and payout configuration workflow
 - [x] Add secure Paystack subaccount API integration and event split-payment metadata
-- [ ] Persist event-linked buyer and ticket purchase details through the webhook
+- [x] Persist event-linked buyer and ticket purchase details through the webhook
 - [x] Add tests for client, subaccount, event binding, and payout metadata flows
 - [ ] Validate, checkpoint, and push the completed multi-tenant payout upgrade to GitHub main
 - [x] Bind checkout to live event data and pass event.paystackSubaccountCode as Paystack subaccount
 - [x] Replace hardcoded storefront event and price with event-backed API data
 - [x] Add regression tests for event-to-subaccount binding and emitted split-payment metadata
-- [ ] Add eventId and event title to Paystack checkout metadata and persist them through webhook processing
+- [x] Add eventId and event title to Paystack checkout metadata and persist them through webhook processing
 - [ ] Add event capacity and availability fields with sold-out validation and storefront states
 - [ ] Replace remaining hardcoded storefront date, venue, and event copy with API-backed fields
 - [ ] Add API regression tests for clients, subaccounts, public events, and Paystack payload binding
+- [ ] Align Paystack checkout metadata with webhook parsing for quantity, full_name, and phone
+- [ ] Preserve the original Paystack reference on event-linked ticket records
+- [ ] Add phone-based lookup to the hidden gate check-in API and UI
+- [ ] Add regression coverage for checkout metadata shape, webhook buyer fields, and gate phone lookup

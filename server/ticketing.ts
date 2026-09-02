@@ -2,9 +2,10 @@ import * as crypto from "node:crypto";
 import { and, desc, eq } from "drizzle-orm";
 import type { Express, Request, RequestHandler, Response } from "express";
 import { nanoid } from "nanoid";
-import { orders, tickets } from "../drizzle/ticketing-schema.js";
+import { events, eventTickets, orders, tickets } from "../drizzle/ticketing-schema.js";
 import { getTicketDb } from "./ticketDb.js";
 import { sdk } from "./_core/sdk";
+import { sendTicketConfirmation } from "./resend";
 
 const getPaystackSecret = () => process.env.PAYSTACK_SECRET_KEY;
 
@@ -125,11 +126,22 @@ async function processWebhook(payload: any, dbFactory: () => any = getTicketDb) 
   const reference = String(payload.data.reference || payload.data.id || nanoid(12));
   const existing = await db.select({ id: orders.id }).from(orders).where(eq(orders.id, reference)).limit(1);
   if (existing.length) return;
-  const quantity = Math.max(1, Number(payload.data.metadata?.quantity || payload.data.quantity || 1));
+  const metadata = payload.data.metadata || {};
+  const quantity = Math.max(1, Number(metadata.quantity || payload.data.quantity || 1));
+  const eventId = typeof metadata.eventId === "string" ? metadata.eventId : "";
+  const buyerName = String(metadata.full_name || payload.data.customer?.name || "Ticket buyer");
+  const buyerPhone = String(metadata.phone || "");
+  const buyerEmail = String(payload.data.customer?.email || "unknown@example.com");
+  let eventTitle: string | undefined;
   await db.transaction(async (tx: any) => {
-    await tx.insert(orders).values({ id: reference, buyerEmail: String(payload.data.customer?.email || "unknown@example.com"), totalAmount: Number(payload.data.amount || 0), createdAt: new Date() });
+    await tx.insert(orders).values({ id: reference, buyerEmail, totalAmount: Number(payload.data.amount || 0), createdAt: new Date() });
     await tx.insert(tickets).values(Array.from({ length: quantity }, () => ({ id: `tkt_${nanoid(16)}`, orderId: reference, status: "valid" as const })));
+    if (eventId) {
+      const matchingEvent = await tx.select({ id: events.id }).from(events).where(eq(events.id, eventId)).limit(1);
+      if (matchingEvent[0]) { eventTitle = String(metadata.eventTitle || ""); await tx.insert(eventTickets).values(Array.from({ length: quantity }, () => ({ id: `evt_tkt_${nanoid(16)}`, eventId, buyerName, buyerEmail, buyerPhone, paystackRef: `${reference}-${nanoid(8)}`, status: "valid" as const }))); }
+    }
   });
+  try { await sendTicketConfirmation({ to: buyerEmail, buyerName, reference, eventTitle }); } catch (error) { console.error("[Resend confirmation]", error); }
 }
 
 export async function getDashboardData() {

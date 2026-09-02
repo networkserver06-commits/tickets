@@ -1,0 +1,6 @@
+User-agent: *
+Disallow: /admin
+Disallow: /api/management
+Disallow: /gate-checkin-x9k2
+Disallow: /ticket/
+Disallow: /verify/
