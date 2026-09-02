@@ -4,8 +4,8 @@ import {
   listClients,
   updateClient,
   validateSubaccountCode,
-} from "../multitenant";
-import { getAdminUsername } from "../adminAuth";
+} from "../multitenant.js";
+import { getAdminUsername } from "../adminAuth.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!getAdminUsername(req as any)) {

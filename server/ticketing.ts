@@ -16,8 +16,8 @@ import {
   tickets,
 } from "../drizzle/ticketing-schema.js";
 import { getTicketDb } from "./ticketDb.js";
-import { sdk } from "./_core/sdk";
-import { sendTicketConfirmation } from "./resend";
+import { sdk } from "./_core/sdk.js";
+import { sendTicketConfirmation } from "./resend.js";
 
 const getPaystackSecret = () => process.env.PAYSTACK_SECRET_KEY;
 

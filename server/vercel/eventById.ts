@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { eq } from "drizzle-orm";
-import { events } from "../../drizzle/ticketing-schema";
-import { getTicketDb } from "../ticketDb";
+import { events } from "../../drizzle/ticketing-schema.js";
+import { getTicketDb } from "../ticketDb.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "GET") {
