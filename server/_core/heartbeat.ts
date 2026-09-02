@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { ENV } from "./env";
+import { ENV } from "./env.js";
 
 export type HeartbeatJob = {
   name: string;
@@ -46,13 +46,15 @@ const buildEndpoint = (rpc: string): string => {
   if (!ENV.forgeApiUrl) {
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
-      message: "Heartbeat service URL is not configured (BUILT_IN_FORGE_API_URL).",
+      message:
+        "Heartbeat service URL is not configured (BUILT_IN_FORGE_API_URL).",
     });
   }
   if (!ENV.forgeApiKey) {
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
-      message: "Heartbeat service API key is not configured (BUILT_IN_FORGE_API_KEY).",
+      message:
+        "Heartbeat service API key is not configured (BUILT_IN_FORGE_API_KEY).",
     });
   }
   const baseUrl = ENV.forgeApiUrl;

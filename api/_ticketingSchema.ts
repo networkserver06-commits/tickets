@@ -10,12 +10,20 @@ export const orders = sqliteTable("orders", {
 
 export const tickets = sqliteTable("tickets", {
   id: text("id").primaryKey(),
-  orderId: text("order_id").notNull().references(() => orders.id),
-  status: text("status", { enum: ["valid", "used"] }).notNull().default("valid"),
+  orderId: text("order_id")
+    .notNull()
+    .references(() => orders.id),
+  status: text("status", { enum: ["valid", "used"] })
+    .notNull()
+    .default("valid"),
 });
 
-export const ordersRelations = relations(orders, ({ many }) => ({ tickets: many(tickets) }));
-export const ticketsRelations = relations(tickets, ({ one }) => ({ order: one(orders, { fields: [tickets.orderId], references: [orders.id] }) }));
+export const ordersRelations = relations(orders, ({ many }) => ({
+  tickets: many(tickets),
+}));
+export const ticketsRelations = relations(tickets, ({ one }) => ({
+  order: one(orders, { fields: [tickets.orderId], references: [orders.id] }),
+}));
 
 export type Order = typeof orders.$inferSelect;
 export type Ticket = typeof tickets.$inferSelect;

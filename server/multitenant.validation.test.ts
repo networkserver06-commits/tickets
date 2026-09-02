@@ -7,7 +7,8 @@ describe("multi-tenant validation contracts", () => {
   });
 
   it("uses the owner payout fallback when an event override is empty", () => {
-    const payout = (eventCode: string | null | undefined, ownerCode: string) => eventCode || ownerCode;
+    const payout = (eventCode: string | null | undefined, ownerCode: string) =>
+      eventCode || ownerCode;
     expect(payout(null, "ACCT_OWNER")).toBe("ACCT_OWNER");
     expect(payout("ACCT_CLIENT", "ACCT_OWNER")).toBe("ACCT_CLIENT");
   });

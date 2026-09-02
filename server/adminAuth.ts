@@ -8,7 +8,7 @@ import type {
 } from "express-serve-static-core";
 
 type ExpressApp = ReturnType<typeof express>;
-import { getSessionCookieOptions } from "./_core/cookies";
+import { getSessionCookieOptions } from "./_core/cookies.js";
 
 export const ADMIN_SESSION_COOKIE = "passage_admin_session";
 const SESSION_TTL_MS = 8 * 60 * 60 * 1000;

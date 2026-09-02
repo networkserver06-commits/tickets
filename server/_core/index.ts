@@ -3,14 +3,14 @@ import express from "express";
 import { createServer } from "http";
 import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
-import { registerOAuthRoutes } from "./oauth";
-import { registerStorageProxy } from "./storageProxy";
-import { appRouter } from "../routers";
-import { createContext } from "./context";
-import { registerAdminRoutes } from "../adminAuth";
-import { registerTicketingRoutes } from "../ticketing";
-import { requireAdmin } from "../adminAuth";
-import { serveStatic, setupVite } from "./vite";
+import { registerOAuthRoutes } from "./oauth.js";
+import { registerStorageProxy } from "./storageProxy.js";
+import { appRouter } from "../routers.js";
+import { createContext } from "./context.js";
+import { registerAdminRoutes } from "../adminAuth.js";
+import { registerTicketingRoutes } from "../ticketing.js";
+import { requireAdmin } from "../adminAuth.js";
+import { serveStatic, setupVite } from "./vite.js";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -35,7 +35,10 @@ async function startServer() {
   const app = express();
   const server = createServer(app);
   // Preserve exact webhook bytes for Paystack HMAC verification before parsing JSON.
-  app.use("/api/webhook/paystack", express.raw({ type: "application/json", limit: "2mb" }));
+  app.use(
+    "/api/webhook/paystack",
+    express.raw({ type: "application/json", limit: "2mb" })
+  );
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   registerStorageProxy(app);

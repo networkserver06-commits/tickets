@@ -8,9 +8,9 @@ import { parse as parseCookieHeader } from "cookie";
 import express from "express";
 import type { Request, Response } from "express-serve-static-core";
 type ExpressApp = ReturnType<typeof express>;
-import * as db from "../db";
-import { getSessionCookieOptions } from "./cookies";
-import { sdk } from "./sdk";
+import * as db from "../db.js";
+import { getSessionCookieOptions } from "./cookies.js";
+import { sdk } from "./sdk.js";
 
 function getQueryParam(req: Request, key: string): string | undefined {
   const value = req.query[key];

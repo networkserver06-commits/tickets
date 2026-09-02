@@ -28,11 +28,13 @@ describe("Paystack transactions", () => {
   });
 
   it("uses safe fallback values for incomplete Paystack records", () => {
-    expect(normalizePaystackTransaction({ status: "abandoned" })).toMatchObject({
-      amount: 0,
-      currency: "KES",
-      status: "abandoned",
-      customerEmail: "—",
-    });
+    expect(normalizePaystackTransaction({ status: "abandoned" })).toMatchObject(
+      {
+        amount: 0,
+        currency: "KES",
+        status: "abandoned",
+        customerEmail: "—",
+      }
+    );
   });
 });
