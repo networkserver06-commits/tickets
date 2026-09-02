@@ -1,7 +1,8 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 
 function pathname(req: VercelRequest) {
-  return new URL(req.url || "/", `https://${req.headers.host || "localhost"}`).pathname;
+  return new URL(req.url || "/", `https://${req.headers.host || "localhost"}`)
+    .pathname;
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -41,15 +42,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return route(req, res);
   }
   if (path === "/api/management/clients") {
-    const { default: route } = await import("../server/vercel/managementClients.js");
+    const { default: route } = await import(
+      "../server/vercel/managementClients.js"
+    );
     return route(req, res);
   }
   if (path === "/api/management/events") {
-    const { default: route } = await import("../server/vercel/managementEvents.js");
+    const { default: route } = await import(
+      "../server/vercel/managementEvents.js"
+    );
     return route(req, res);
   }
   if (path === "/api/management/subaccounts") {
-    const { default: route } = await import("../server/vercel/managementSubaccounts.js");
+    const { default: route } = await import(
+      "../server/vercel/managementSubaccounts.js"
+    );
     return route(req, res);
   }
 
