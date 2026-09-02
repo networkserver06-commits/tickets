@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import {
   createClient,
+  deleteClient,
   listClients,
   updateClient,
   validateSubaccountCode,
@@ -22,6 +23,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
     return;
+  }
+  if (req.method === "DELETE") {
+    const id = String(req.query.id || "").trim();
+    if (!id) return res.status(400).json({ error: "Client id is required" });
+    try {
+      return res.status(200).json({ deleted: await deleteClient(id) });
+    } catch (error) {
+      return res.status(400).json({ error: error instanceof Error ? error.message : "Unable to delete client" });
+    }
   }
   if (req.method === "PUT") {
     const body = (req.body || {}) as Record<string, unknown>;

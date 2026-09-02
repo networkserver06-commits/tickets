@@ -39,6 +39,15 @@ export async function createClient(input: Omit<InsertClient, "createdAt">) {
   return record;
 }
 
+export async function deleteClient(id: string) {
+  const db = getTicketDb();
+  if (!db) throw new Error("Turso database is not configured");
+  const linkedEvents = await db.select({ id: events.id }).from(events).where(eq(events.clientId, id)).limit(1);
+  if (linkedEvents[0]) throw new Error("This payout profile is linked to an event and cannot be deleted until that event is removed or reassigned");
+  await db.delete(clients).where(eq(clients.id, id));
+  return { id };
+}
+
 export async function updateClient(
   id: string,
   input: Partial<Omit<InsertClient, "id" | "createdAt">>
@@ -63,6 +72,18 @@ export async function listEvents() {
   const db = getTicketDb();
   if (!db) throw new Error("Turso database is not configured");
   return db.select().from(events);
+}
+
+export async function updateEvent(id: string, input: Partial<Omit<InsertEvent, "id" | "createdAt">>) {
+  const db = getTicketDb();
+  if (!db) throw new Error("Turso database is not configured");
+  if (input.ticketPrice !== undefined && (!Number.isFinite(input.ticketPrice) || input.ticketPrice <= 0)) throw new Error("Ticket price must be positive");
+  if (input.capacity !== undefined && (!Number.isFinite(input.capacity) || input.capacity <= 0)) throw new Error("Capacity must be positive");
+  if (input.paystackSubaccountCode && !validateSubaccountCode(input.paystackSubaccountCode)) throw new Error("Invalid Paystack subaccount code");
+  await db.update(events).set(input).where(eq(events.id, id));
+  const rows = await db.select().from(events).where(eq(events.id, id)).limit(1);
+  if (!rows[0]) throw new Error("Event not found");
+  return rows[0];
 }
 
 export async function deleteEvent(id: string) {

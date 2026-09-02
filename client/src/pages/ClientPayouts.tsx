@@ -45,6 +45,20 @@ export default function ClientPayouts() {
   useEffect(() => {
     void load();
   }, []);
+  const remove = async (client: Client) => {
+    if (!window.confirm(`Delete the payout profile for ${client.businessName}?`)) return;
+    setError("");
+    setSuccess("");
+    try {
+      const response = await fetch(`/api/management/clients?id=${encodeURIComponent(client.id)}`, { method: "DELETE", credentials: "same-origin" });
+      const payload = await response.json().catch(() => ({ error: `Request failed (${response.status})` }));
+      if (!response.ok) throw new Error(payload.error || "Unable to delete client");
+      setSuccess("Payout profile deleted.");
+      await load();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Unable to delete client");
+    }
+  };
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (saving) return;
@@ -225,6 +239,7 @@ export default function ClientPayouts() {
                     >
                       Edit
                     </Button>
+                    <Button type="button" size="sm" variant="ghost" className="text-rose-600 hover:text-rose-700" onClick={() => void remove(client)}>Delete</Button>
                   </div>
                 </div>
               ))}

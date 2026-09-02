@@ -3,6 +3,7 @@ import {
   createEvent,
   deleteEvent,
   listClients,
+  updateEvent,
   listEvents,
   validateSubaccountCode,
 } from "../multitenant.js";
@@ -23,6 +24,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
     return;
+  }
+  if (req.method === "PUT") {
+    const id = String(req.query.id || "").trim();
+    const body = (req.body || {}) as Record<string, unknown>;
+    if (!id) return res.status(400).json({ error: "Event id is required" });
+    try {
+      const clients = await listClients().catch(() => []);
+      const selectedClient = clients.find(client => client.id === String(body.clientId || "").trim());
+      const event = await updateEvent(id, {
+        title: typeof body.title === "string" ? body.title.trim() : undefined,
+        description: typeof body.description === "string" ? body.description.trim() : undefined,
+        eventDate: typeof body.eventDate === "string" ? body.eventDate.trim() : undefined,
+        venue: typeof body.venue === "string" ? body.venue.trim() : undefined,
+        imageUrl: typeof body.imageUrl === "string" ? body.imageUrl.trim() : undefined,
+        ticketPrice: body.ticketPrice === undefined ? undefined : Number(body.ticketPrice),
+        capacity: body.capacity === undefined ? undefined : Number(body.capacity),
+        paystackSubaccountCode: typeof body.paystackSubaccountCode === "string" ? body.paystackSubaccountCode.trim() : selectedClient?.paystackSubaccountCode,
+      });
+      return res.status(200).json({ event });
+    } catch (error) {
+      return res.status(400).json({ error: error instanceof Error ? error.message : "Unable to update event" });
+    }
   }
   if (req.method === "DELETE") {
     const id = String(req.query.id || "").trim();
@@ -52,7 +75,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       typeof body.description === "string" ? body.description.trim() : null,
     eventDate:
       typeof body.eventDate === "string" ? body.eventDate.trim() : null,
-    venue: typeof body.venue === "string" ? body.venue.trim() : null,
+        venue:
+      typeof body.venue === "string" ? body.venue.trim() : null,
+    imageUrl: typeof body.imageUrl === "string" ? body.imageUrl.trim() : null,
     ticketPrice: Number(body.ticketPrice),
     capacity: Number(body.capacity),
     soldCount: 0,

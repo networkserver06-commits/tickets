@@ -26,6 +26,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         description: events.description,
         eventDate: events.eventDate,
         venue: events.venue,
+        imageUrl: events.imageUrl,
         ticketPrice: events.ticketPrice,
         capacity: events.capacity,
         soldCount: events.soldCount,

@@ -63,6 +63,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       );
       return route(req, res);
     }
+    if (path === "/api/management/event-image") {
+      const { default: route } = await import("../server/vercel/managementEventImage.js");
+      return route(req, res);
+    }
     if (path === "/api/management/status") {
       const { default: route } = await import("../server/vercel/managementStatus.js");
       return route(req, res);

@@ -31,6 +31,7 @@ export const events = sqliteTable("events", {
   description: text("description"),
   eventDate: text("event_date"),
   venue: text("venue"),
+  imageUrl: text("image_url"),
   ticketPrice: integer("ticket_price").notNull(),
   capacity: integer("capacity").notNull().default(500),
   soldCount: integer("sold_count").notNull().default(0),

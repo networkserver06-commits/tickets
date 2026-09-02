@@ -9,7 +9,7 @@ const schemaStatements = [
   `CREATE TABLE IF NOT EXISTS orders (id TEXT PRIMARY KEY NOT NULL, buyer_email TEXT NOT NULL, total_amount INTEGER NOT NULL, created_at INTEGER NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS tickets (id TEXT PRIMARY KEY NOT NULL, order_id TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'valid', FOREIGN KEY (order_id) REFERENCES orders(id))`,
   `CREATE TABLE IF NOT EXISTS clients (id TEXT PRIMARY KEY NOT NULL, business_name TEXT NOT NULL, email TEXT NOT NULL, phone TEXT NOT NULL, paystack_subaccount_code TEXT NOT NULL, platform_fee_percentage INTEGER NOT NULL DEFAULT 10, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)`,
-  `CREATE TABLE IF NOT EXISTS events (id TEXT PRIMARY KEY NOT NULL, client_id TEXT NOT NULL, title TEXT NOT NULL, description TEXT, event_date TEXT, venue TEXT, ticket_price INTEGER NOT NULL, capacity INTEGER NOT NULL DEFAULT 500, sold_count INTEGER NOT NULL DEFAULT 0, paystack_subaccount_code TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (client_id) REFERENCES clients(id))`,
+  `CREATE TABLE IF NOT EXISTS events (id TEXT PRIMARY KEY NOT NULL, client_id TEXT NOT NULL, title TEXT NOT NULL, description TEXT, event_date TEXT, venue TEXT, image_url TEXT, ticket_price INTEGER NOT NULL, capacity INTEGER NOT NULL DEFAULT 500, sold_count INTEGER NOT NULL DEFAULT 0, paystack_subaccount_code TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (client_id) REFERENCES clients(id))`,
   `CREATE TABLE IF NOT EXISTS event_tickets (id TEXT PRIMARY KEY NOT NULL, event_id TEXT NOT NULL, buyer_name TEXT NOT NULL, buyer_email TEXT NOT NULL, buyer_phone TEXT NOT NULL, paystack_ref TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'valid', scanned_at TEXT, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (event_id) REFERENCES events(id))`,
 ];
 
@@ -24,6 +24,9 @@ export async function ensureTicketSchema() {
         authToken: process.env.TURSO_AUTH_TOKEN,
       });
       for (const sql of schemaStatements) await client.execute(sql);
+      try { await client.execute("ALTER TABLE events ADD COLUMN image_url TEXT"); } catch (error) {
+        if (!String(error).toLowerCase().includes("duplicate column")) throw error;
+      }
       return true;
     } catch (error) {
       schemaPromise = null;
