@@ -23,10 +23,11 @@ export default function ClientPayouts() {
   });
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const load = async () => {
     setLoading(true);
     try {
-      const response = await fetch("/api/management/clients");
+      const response = await fetch("/api/management/clients", { cache: "no-store", credentials: "same-origin" });
       const payload = await response
         .json()
         .catch(() => ({ error: `Request failed (${response.status})` }));
@@ -46,8 +47,10 @@ export default function ClientPayouts() {
   }, []);
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (saving) return;
     setError("");
     setSuccess("");
+    setSaving(true);
     try {
       const response = await fetch("/api/management/clients", {
         method: editingId ? "PUT" : "POST",
@@ -72,9 +75,9 @@ export default function ClientPayouts() {
       setEditingId(null);
       await load();
     } catch (reason) {
-      setError(
-        reason instanceof Error ? reason.message : "Unable to save client"
-      );
+      setError(reason instanceof Error ? reason.message : "Unable to save client");
+    } finally {
+      setSaving(false);
     }
   };
   return (
@@ -139,8 +142,8 @@ export default function ClientPayouts() {
               className="h-10 rounded-lg border px-3"
             />
             <div className="sm:col-span-2">
-              <Button type="submit">
-                {editingId ? "Update payout profile" : "Save payout profile"}
+              <Button disabled={saving} type="submit">
+                {saving ? "Saving…" : editingId ? "Update payout profile" : "Save payout profile"}
               </Button>
               {editingId && (
                 <Button

@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import {
   createEvent,
+  listClients,
   listEvents,
   validateSubaccountCode,
 } from "../multitenant.js";
@@ -11,6 +12,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.status(401).json({ error: "Admin authentication required" });
     return;
   }
+  res.setHeader("Cache-Control", "no-store");
   if (req.method === "GET") {
     try {
       res.status(200).json({ events: await listEvents() });
@@ -26,20 +28,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
   const body = (req.body || {}) as Record<string, unknown>;
+  const clients = await listClients().catch(() => []);
+  const selectedClient = clients.find(client => client.id === String(body.clientId || "").trim()) || clients[0];
   const input = {
-    id: String(body.id || `EVT-${Date.now()}`),
-    clientId: String(body.clientId || "").trim(),
+    id: String(body.id || `EVT-${Date.now()}`).trim(),
+    clientId: selectedClient?.id || "",
     title: String(body.title || "").trim(),
     description:
       typeof body.description === "string" ? body.description.trim() : null,
     eventDate:
       typeof body.eventDate === "string" ? body.eventDate.trim() : null,
     venue: typeof body.venue === "string" ? body.venue.trim() : null,
-    ticketPrice: Number(body.ticketPrice || 0),
-    capacity: Number(body.capacity || 500),
+    ticketPrice: Number(body.ticketPrice),
+    capacity: Number(body.capacity),
     soldCount: 0,
     paystackSubaccountCode: String(
-      body.paystackSubaccountCode || process.env.PAYSTACK_SUBACCOUNT_CODE || ""
+      body.paystackSubaccountCode || process.env.PAYSTACK_SUBACCOUNT_CODE || selectedClient?.paystackSubaccountCode || ""
     ).trim(),
   };
   if (
@@ -53,7 +57,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   ) {
     res.status(400).json({
       error:
-        "Client, title, positive ticket price, and either a valid ACCT_ code or PAYSTACK_SUBACCOUNT_CODE fallback are required",
+        "Event title, positive ticket price, capacity, and a configured Paystack payout profile are required",
     });
     return;
   }

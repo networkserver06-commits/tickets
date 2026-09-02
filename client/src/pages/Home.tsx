@@ -737,10 +737,10 @@ function SubPage({
       )}
       {title === "Transactions" && <TransactionsTable />}
       {title === "Settings" && (
-        <>
+        <div className="grid gap-8 lg:grid-cols-2">
           <ClientPayouts />
           <EventManagement />
-        </>
+        </div>
       )}
       {title === "Tickets" && (
         <Card className="border-0 bg-white p-8 shadow-[0_16px_45px_rgba(15,23,42,0.06)]">

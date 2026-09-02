@@ -75,12 +75,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       );
       return route(req, res);
     }
-    if (path === "/api/management/subaccounts") {
-      const { default: route } = await import(
-        "../server/vercel/managementSubaccounts.js"
-      );
-      return route(req, res);
-    }
 
     const eventMatch = path.match(/^\/api\/events\/([^/]+)$/);
     if (eventMatch) {

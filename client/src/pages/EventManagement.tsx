@@ -1,184 +1,107 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 
+type EventForm = {
+  id: string;
+  title: string;
+  description: string;
+  eventDate: string;
+  venue: string;
+  ticketPrice: string;
+  capacity: string;
+};
+
+const emptyForm: EventForm = {
+  id: "",
+  title: "",
+  description: "",
+  eventDate: "",
+  venue: "",
+  ticketPrice: "",
+  capacity: "",
+};
+
+async function readJson(response: Response) {
+  return response.json().catch(() => ({ error: `Request failed (${response.status})` }));
+}
+
 export default function EventManagement() {
-  const [clients, setClients] = useState<any[]>([]);
   const [events, setEvents] = useState<any[]>([]);
+  const [form, setForm] = useState<EventForm>(emptyForm);
   const [message, setMessage] = useState("");
-  const [form, setForm] = useState({
-    id: "",
-    clientId: "",
-    title: "",
-    description: "",
-    eventDate: "",
-    venue: "",
-    ticketPrice: "250000",
-    capacity: "500",
-    paystackSubaccountCode: "",
-  });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
   async function load() {
-    const [c, e] = await Promise.all([
-      fetch("/api/management/clients"),
-      fetch("/api/management/events"),
-    ]);
-    const cj = await c
-      .json()
-      .catch(() => ({ error: `Clients request failed (${c.status})` }));
-    const ej = await e
-      .json()
-      .catch(() => ({ error: `Events request failed (${e.status})` }));
-    if (!c.ok || !e.ok)
-      throw new Error(cj.error || ej.error || "Unable to load event data");
-    setClients(cj.clients || []);
-    setEvents(ej.events || []);
+    setLoading(true);
+    const response = await fetch("/api/management/events", { cache: "no-store" });
+    const body = await readJson(response);
+    if (!response.ok) throw new Error(body.error || "Unable to load events");
+    setEvents(body.events || []);
+    setLoading(false);
   }
+
   useEffect(() => {
-    void load();
+    void load().catch(error => {
+      setMessage(error instanceof Error ? error.message : "Unable to load events");
+      setLoading(false);
+    });
   }, []);
+
   async function submit(event: React.FormEvent) {
     event.preventDefault();
+    if (saving) return;
     setMessage("");
-    const response = await fetch("/api/management/events", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...form,
-        ticketPrice: Number(form.ticketPrice),
-        capacity: Number(form.capacity),
-      }),
-    });
-    const body = await response
-      .json()
-      .catch(() => ({ error: `Request failed (${response.status})` }));
-    if (!response.ok) {
-      setMessage(body.error || "Unable to create event");
-      return;
+    setSaving(true);
+    try {
+      const response = await fetch("/api/management/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...form,
+          ticketPrice: Number(form.ticketPrice),
+          capacity: Number(form.capacity),
+        }),
+      });
+      const body = await readJson(response);
+      if (!response.ok) {
+        setMessage(body.error || "Unable to create event");
+        return;
+      }
+      setMessage(`Event published. Customer link: ${window.location.origin}/event/${body.event.id}`);
+      setForm(emptyForm);
+      await load();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to create event");
+    } finally {
+      setSaving(false);
     }
-    setMessage("Event created");
-    setForm({
-      id: "",
-      clientId: "",
-      title: "",
-      description: "",
-      eventDate: "",
-      venue: "",
-      ticketPrice: "250000",
-      capacity: "500",
-      paystackSubaccountCode: "",
-    });
-    await load();
   }
+
   return (
     <div className="space-y-6">
       <div>
-        <p className="text-sm font-semibold text-indigo-600">
-          Event operations
-        </p>
-        <h2 className="mt-1 text-2xl font-semibold">Create a live event</h2>
-        <p className="mt-1 text-sm text-slate-500">
-          Leave the payout code empty to use your configured owner fallback.
-        </p>
+        <p className="text-sm font-semibold text-indigo-600">Event operations</p>
+        <h2 className="mt-1 text-2xl font-semibold">Publish a live event</h2>
+        <p className="mt-1 text-sm text-slate-500">Complete the event details below. The event is published immediately and receives its own checkout link.</p>
       </div>
-      <form
-        onSubmit={submit}
-        className="grid gap-3 rounded-2xl bg-white p-6 shadow-sm sm:grid-cols-2"
-      >
-        <input
-          required
-          placeholder="Event ID"
-          value={form.id}
-          onChange={e => setForm({ ...form, id: e.target.value })}
-          className="h-10 rounded-lg border px-3"
-        />
-        <select
-          required
-          value={form.clientId}
-          onChange={e => setForm({ ...form, clientId: e.target.value })}
-          className="h-10 rounded-lg border px-3"
-        >
-          <option value="">Select client</option>
-          {clients.map(c => (
-            <option key={c.id} value={c.id}>
-              {c.businessName}
-            </option>
-          ))}
-        </select>
-        <input
-          required
-          placeholder="Event title"
-          value={form.title}
-          onChange={e => setForm({ ...form, title: e.target.value })}
-          className="h-10 rounded-lg border px-3"
-        />
-        <input
-          type="date"
-          placeholder="Event date"
-          value={form.eventDate}
-          onChange={e => setForm({ ...form, eventDate: e.target.value })}
-          className="h-10 rounded-lg border px-3"
-        />
-        <input
-          placeholder="Venue"
-          value={form.venue}
-          onChange={e => setForm({ ...form, venue: e.target.value })}
-          className="h-10 rounded-lg border px-3"
-        />
-        <input
-          required
-          type="number"
-          min="1"
-          placeholder="Price in cents"
-          value={form.ticketPrice}
-          onChange={e => setForm({ ...form, ticketPrice: e.target.value })}
-          className="h-10 rounded-lg border px-3"
-        />
-        <input
-          required
-          type="number"
-          min="1"
-          placeholder="Capacity"
-          value={form.capacity}
-          onChange={e => setForm({ ...form, capacity: e.target.value })}
-          className="h-10 rounded-lg border px-3"
-        />
-        <input
-          placeholder="ACCT_ override (optional)"
-          value={form.paystackSubaccountCode}
-          onChange={e =>
-            setForm({ ...form, paystackSubaccountCode: e.target.value })
-          }
-          className="h-10 rounded-lg border px-3 sm:col-span-2"
-        />
-        <textarea
-          placeholder="Description"
-          value={form.description}
-          onChange={e => setForm({ ...form, description: e.target.value })}
-          className="min-h-24 rounded-lg border p-3 sm:col-span-2"
-        />
-        <Button type="submit" className="sm:col-span-2">
-          Create event
-        </Button>
-        {message && (
-          <p className="text-sm text-slate-600 sm:col-span-2">{message}</p>
-        )}
+      <form onSubmit={submit} className="grid gap-3 rounded-2xl bg-white p-6 shadow-sm sm:grid-cols-2">
+        <input placeholder="Event ID (optional)" value={form.id} onChange={e => setForm({ ...form, id: e.target.value })} className="h-10 rounded-lg border px-3" />
+        <input required placeholder="Event title" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="h-10 rounded-lg border px-3" />
+        <input type="date" placeholder="Event date" value={form.eventDate} onChange={e => setForm({ ...form, eventDate: e.target.value })} className="h-10 rounded-lg border px-3" />
+        <input placeholder="Venue" value={form.venue} onChange={e => setForm({ ...form, venue: e.target.value })} className="h-10 rounded-lg border px-3" />
+        <input required type="number" min="1" placeholder="Ticket price in KES" value={form.ticketPrice} onChange={e => setForm({ ...form, ticketPrice: e.target.value })} className="h-10 rounded-lg border px-3" />
+        <input required type="number" min="1" placeholder="Capacity" value={form.capacity} onChange={e => setForm({ ...form, capacity: e.target.value })} className="h-10 rounded-lg border px-3" />
+        <textarea placeholder="Description" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className="min-h-24 rounded-lg border p-3 sm:col-span-2" />
+        <Button disabled={saving} type="submit" className="sm:col-span-2">{saving ? "Publishing…" : "Publish event"}</Button>
+        {message && <p className="text-sm text-slate-600 sm:col-span-2">{message}</p>}
       </form>
       <div className="space-y-3">
-        {events.map(e => (
+        {loading ? <p className="text-sm text-slate-500">Loading published events…</p> : events.length === 0 ? <p className="rounded-xl border bg-white p-4 text-sm text-slate-500">No events published yet.</p> : events.map(e => (
           <div key={e.id} className="rounded-xl border bg-white p-4">
-            <div className="flex justify-between gap-3">
-              <div>
-                <p className="font-medium">{e.title}</p>
-                <p className="text-sm text-slate-500">
-                  {e.id} · {e.clientId}
-                </p>
-              </div>
-              <span className="font-mono text-xs text-indigo-700">
-                {e.paystackSubaccountCode}
-              </span>
-            </div>
-            <p className="mt-2 text-sm text-slate-500">
-              Customer link: /event/{e.id}
-            </p>
+            <p className="font-medium">{e.title}</p>
+            <p className="text-sm text-slate-500">{e.eventDate || "Date to be announced"}{e.venue ? ` · ${e.venue}` : ""}</p>
+            <a className="mt-2 block text-sm font-medium text-indigo-600 hover:underline" href={`/event/${encodeURIComponent(e.id)}`}>Open customer checkout</a>
           </div>
         ))}
       </div>
