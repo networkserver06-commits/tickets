@@ -21,12 +21,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
   if (!businessName || !email || !accountNumber || !bankCode) {
-    res
-      .status(400)
-      .json({
-        error:
-          "Business name, email, account number, and bank code are required",
-      });
+    res.status(400).json({
+      error: "Business name, email, account number, and bank code are required",
+    });
     return;
   }
   try {
@@ -48,20 +45,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       data?: { subaccount_code?: string };
     };
     if (!response.ok || !payload.data?.subaccount_code) {
-      res
-        .status(response.status || 502)
-        .json({
-          error: payload.message || "Paystack could not create the subaccount",
-        });
+      res.status(response.status || 502).json({
+        error: payload.message || "Paystack could not create the subaccount",
+      });
       return;
     }
     res.status(201).json({ subaccountCode: payload.data.subaccount_code });
   } catch (error) {
-    res
-      .status(502)
-      .json({
-        error:
-          error instanceof Error ? error.message : "Unable to reach Paystack",
-      });
+    res.status(502).json({
+      error:
+        error instanceof Error ? error.message : "Unable to reach Paystack",
+    });
   }
 }

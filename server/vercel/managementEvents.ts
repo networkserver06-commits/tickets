@@ -15,12 +15,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     try {
       res.status(200).json({ events: await listEvents() });
     } catch (error) {
-      res
-        .status(500)
-        .json({
-          error:
-            error instanceof Error ? error.message : "Unable to load events",
-        });
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "Unable to load events",
+      });
     }
     return;
   }
@@ -54,22 +51,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     input.capacity <= 0 ||
     !validateSubaccountCode(input.paystackSubaccountCode)
   ) {
-    res
-      .status(400)
-      .json({
-        error:
-          "Client, title, positive ticket price, and either a valid ACCT_ code or PAYSTACK_SUBACCOUNT_CODE fallback are required",
-      });
+    res.status(400).json({
+      error:
+        "Client, title, positive ticket price, and either a valid ACCT_ code or PAYSTACK_SUBACCOUNT_CODE fallback are required",
+    });
     return;
   }
   try {
     res.status(201).json({ event: await createEvent(input) });
   } catch (error) {
-    res
-      .status(400)
-      .json({
-        error:
-          error instanceof Error ? error.message : "Unable to create event",
-      });
+    res.status(400).json({
+      error: error instanceof Error ? error.message : "Unable to create event",
+    });
   }
 }

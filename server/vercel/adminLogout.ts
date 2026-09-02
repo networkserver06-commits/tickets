@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { clearAdminCookie } from "../../api/_adminAuth.js";
 
 export default function handler(_req: VercelRequest, res: VercelResponse) {
+  res.setHeader("Cache-Control", "no-store, max-age=0");
   clearAdminCookie(res);
   res.status(200).json({ success: true });
 }

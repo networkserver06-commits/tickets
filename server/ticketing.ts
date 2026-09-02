@@ -271,13 +271,27 @@ export function registerTicketingRoutes(
   });
 
   app.get("/api/dashboard/summary", adminMiddleware, async (_req, res) => {
+    res.set("Cache-Control", "no-store, max-age=0");
     const db = dbFactory();
     if (!db) return res.status(503).json({ error: "Database unavailable" });
-    const [orderRows, ticketRows] = await Promise.all([
-      db.select().from(orders).orderBy(desc(orders.createdAt)).limit(20),
-      db.select().from(tickets).orderBy(desc(tickets.id)).limit(100),
-    ]);
-    return res.json({ orders: orderRows, tickets: ticketRows });
+    const timeout = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error("Dashboard query timed out")), 8000);
+    });
+    try {
+      const [orderRows, ticketRows] = await Promise.race([
+        Promise.all([
+          db.select().from(orders).orderBy(desc(orders.createdAt)).limit(20),
+          db.select().from(tickets).orderBy(desc(tickets.id)).limit(100),
+        ]),
+        timeout,
+      ]);
+      return res.json({ orders: orderRows, tickets: ticketRows });
+    } catch (error) {
+      console.error("[Dashboard summary]", error);
+      return res
+        .status(503)
+        .json({ error: "Dashboard data temporarily unavailable" });
+    }
   });
 }
 

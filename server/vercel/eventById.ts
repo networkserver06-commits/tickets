@@ -40,10 +40,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     res.status(200).json({ event: rows[0] });
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        error: error instanceof Error ? error.message : "Unable to load event",
-      });
+    res.status(500).json({
+      error: error instanceof Error ? error.message : "Unable to load event",
+    });
   }
 }

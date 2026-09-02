@@ -16,12 +16,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     try {
       res.status(200).json({ clients: await listClients() });
     } catch (error) {
-      res
-        .status(500)
-        .json({
-          error:
-            error instanceof Error ? error.message : "Unable to load clients",
-        });
+      res.status(500).json({
+        error:
+          error instanceof Error ? error.message : "Unable to load clients",
+      });
     }
     return;
   }
@@ -33,31 +31,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return;
     }
     try {
-      res
-        .status(200)
-        .json({
-          client: await updateClient(id, {
-            businessName: body.businessName
-              ? String(body.businessName).trim()
-              : undefined,
-            email: body.email ? String(body.email).trim() : undefined,
-            phone: body.phone ? String(body.phone).trim() : undefined,
-            paystackSubaccountCode: body.paystackSubaccountCode
-              ? String(body.paystackSubaccountCode).trim()
-              : undefined,
-            platformFeePercentage:
-              body.platformFeePercentage === undefined
-                ? undefined
-                : Number(body.platformFeePercentage),
-          }),
-        });
+      res.status(200).json({
+        client: await updateClient(id, {
+          businessName: body.businessName
+            ? String(body.businessName).trim()
+            : undefined,
+          email: body.email ? String(body.email).trim() : undefined,
+          phone: body.phone ? String(body.phone).trim() : undefined,
+          paystackSubaccountCode: body.paystackSubaccountCode
+            ? String(body.paystackSubaccountCode).trim()
+            : undefined,
+          platformFeePercentage:
+            body.platformFeePercentage === undefined
+              ? undefined
+              : Number(body.platformFeePercentage),
+        }),
+      });
     } catch (error) {
-      res
-        .status(400)
-        .json({
-          error:
-            error instanceof Error ? error.message : "Unable to update client",
-        });
+      res.status(400).json({
+        error:
+          error instanceof Error ? error.message : "Unable to update client",
+      });
     }
     return;
   }
@@ -80,22 +74,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     !input.phone ||
     !validateSubaccountCode(input.paystackSubaccountCode)
   ) {
-    res
-      .status(400)
-      .json({
-        error:
-          "Business name, email, phone, and a valid ACCT_ Paystack subaccount code are required",
-      });
+    res.status(400).json({
+      error:
+        "Business name, email, phone, and a valid ACCT_ Paystack subaccount code are required",
+    });
     return;
   }
   try {
     res.status(201).json({ client: await createClient(input) });
   } catch (error) {
-    res
-      .status(400)
-      .json({
-        error:
-          error instanceof Error ? error.message : "Unable to create client",
-      });
+    res.status(400).json({
+      error: error instanceof Error ? error.message : "Unable to create client",
+    });
   }
 }

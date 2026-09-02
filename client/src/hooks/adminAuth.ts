@@ -8,20 +8,27 @@ export function useAdminAuth() {
 
   useEffect(() => {
     let active = true;
-    fetch("/api/admin/session", { credentials: "same-origin" })
+    fetch(`/api/admin/session?ts=${Date.now()}`, {
+      credentials: "same-origin",
+      cache: "no-store",
+    })
       .then(response => response.json())
       .then(data => {
-        if (active && data.authenticated && data.user) setAdmin(data.user);
+        if (active)
+          setAdmin(data.authenticated && data.user ? data.user : null);
       })
       .catch(() => undefined)
       .finally(() => active && setLoading(false));
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, []);
 
   const login = useCallback(async (username: string, password: string) => {
     const response = await fetch("/api/admin/login", {
       method: "POST",
       credentials: "same-origin",
+      cache: "no-store",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password }),
     });
@@ -31,7 +38,11 @@ export function useAdminAuth() {
   }, []);
 
   const logout = useCallback(async () => {
-    await fetch("/api/admin/logout", { method: "POST", credentials: "same-origin" }).catch(() => undefined);
+    await fetch("/api/admin/logout", {
+      method: "POST",
+      credentials: "same-origin",
+      cache: "no-store",
+    }).catch(() => undefined);
     setAdmin(null);
   }, []);
 

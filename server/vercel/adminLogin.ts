@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { authenticateAdmin, setAdminCookie } from "../../api/_adminAuth.js";
 
 export default function handler(req: VercelRequest, res: VercelResponse) {
+  res.setHeader("Cache-Control", "no-store, max-age=0");
   const username =
     typeof req.body?.username === "string" ? req.body.username.trim() : "";
   const password =
