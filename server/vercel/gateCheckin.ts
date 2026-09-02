@@ -8,7 +8,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.status(405).json({ error: "Method not allowed" });
     return;
   }
-  const expected = process.env.GATE_CHECKIN_PIN;
+  const expected = process.env.GATE_PIN_CODE || process.env.GATE_CHECKIN_PIN;
   if (!expected || req.headers["x-gate-pin"] !== expected) {
     res.status(401).json({ valid: false, error: "Invalid gate PIN" });
     return;

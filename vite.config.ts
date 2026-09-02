@@ -56,7 +56,7 @@ function writeToLogFile(source: LogSource, entries: unknown[]) {
   const logPath = path.join(LOG_DIR, `${source}.log`);
 
   // Format entries with timestamps
-  const lines = entries.map((entry) => {
+  const lines = entries.map(entry => {
     const ts = new Date().toISOString();
     return `[${ts}] ${JSON.stringify(entry)}`;
   });
@@ -132,7 +132,7 @@ function vitePluginManusDebugCollector(): Plugin {
         }
 
         let body = "";
-        req.on("data", (chunk) => {
+        req.on("data", chunk => {
           body += chunk.toString();
         });
 
@@ -150,13 +150,29 @@ function vitePluginManusDebugCollector(): Plugin {
   };
 }
 
-const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector()];
+const plugins = [
+  react(),
+  tailwindcss(),
+  jsxLocPlugin(),
+  vitePluginManusRuntime(),
+  vitePluginManusDebugCollector(),
+];
 
 export default defineConfig({
   plugins,
   define: {
-    "import.meta.env.VITE_PAYSTACK_PUBLIC_KEY": JSON.stringify(process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || process.env.VITE_PAYSTACK_PUBLIC_KEY || ""),
-    "import.meta.env.VITE_BASE_URL": JSON.stringify(process.env.NEXT_PUBLIC_BASE_URL || ""),
+    "import.meta.env.VITE_PAYSTACK_PUBLIC_KEY": JSON.stringify(
+      process.env.VITE_PAYSTACK_PUBLIC_KEY ||
+        process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY ||
+        process.env.PAYSTACK_PUBLIC_KEY ||
+        ""
+    ),
+    "import.meta.env.VITE_BASE_URL": JSON.stringify(
+      process.env.VITE_BASE_URL || process.env.NEXT_PUBLIC_BASE_URL || ""
+    ),
+    "import.meta.env.VITE_PUBLIC_BASE_URL": JSON.stringify(
+      process.env.VITE_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_BASE_URL || ""
+    ),
   },
   resolve: {
     alias: {
