@@ -3,8 +3,8 @@ import {
   COOKIE_NAME,
   ONE_YEAR_MS,
   decodeOAuthState,
-} from "@shared/const";
-import { ForbiddenError } from "@shared/_core/errors";
+} from "../../shared/const.js";
+import { ForbiddenError } from "../../shared/_core/errors.js";
 import axios, { type AxiosInstance } from "axios";
 import { parse as parseCookieHeader } from "cookie";
 import type { Request } from "express-serve-static-core";

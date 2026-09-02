@@ -3,7 +3,7 @@ import {
   ONE_YEAR_MS,
   OAUTH_STATE_COOKIE,
   decodeOAuthState,
-} from "@shared/const";
+} from "../../shared/const.js";
 import { parse as parseCookieHeader } from "cookie";
 import express from "express";
 import type { Request, Response } from "express-serve-static-core";
