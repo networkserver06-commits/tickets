@@ -12,6 +12,7 @@ export const tickets = sqliteTable("tickets", {
   id: text("id").primaryKey(),
   orderId: text("order_id").notNull().references(() => orders.id),
   status: text("status", { enum: ["valid", "used"] }).notNull().default("valid"),
+  scannedAt: text("scanned_at"),
 });
 
 export const clients = sqliteTable("clients", {

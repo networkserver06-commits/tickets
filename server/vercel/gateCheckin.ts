@@ -13,6 +13,7 @@ async function eventTicketDetails(db: any, ticketId: string) {
       buyerEmail: eventTickets.buyerEmail,
       buyerPhone: eventTickets.buyerPhone,
       paymentReference: eventTickets.paystackRef,
+      scannedAt: eventTickets.scannedAt,
     })
     .from(eventTickets)
     .leftJoin(events, eq(eventTickets.eventId, events.id))
@@ -24,6 +25,21 @@ async function eventTicketDetails(db: any, ticketId: string) {
     .where(eq(orders.id, details[0]?.paymentReference || ""))
     .limit(1);
   return details[0] ? { ...details[0], amount: payment[0]?.amount || null } : null;
+}
+
+async function legacyTicketDetails(db: any, ticketId: string) {
+  const details = await db
+    .select({
+      buyerEmail: orders.buyerEmail,
+      paymentReference: orders.id,
+      amount: orders.totalAmount,
+      scannedAt: tickets.scannedAt,
+    })
+    .from(tickets)
+    .leftJoin(orders, eq(tickets.orderId, orders.id))
+    .where(eq(tickets.id, ticketId))
+    .limit(1);
+  return details[0] || null;
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -46,12 +62,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
   if (!ticketId && phone) {
     const found = await db
-      .select({ id: eventTickets.id })
+      .select({ id: eventTickets.id, status: eventTickets.status, scannedAt: eventTickets.scannedAt })
       .from(eventTickets)
       .where(and(eq(eventTickets.buyerPhone, phone), eq(eventTickets.status, "valid")))
       .limit(1);
     if (!found[0]) {
-      res.status(409).json({ valid: false, error: "No valid ticket found for that phone number" });
+      const used = await db
+        .select({ id: eventTickets.id, scannedAt: eventTickets.scannedAt })
+        .from(eventTickets)
+        .where(and(eq(eventTickets.buyerPhone, phone), eq(eventTickets.status, "used")))
+        .orderBy(eventTickets.scannedAt)
+        .limit(1);
+      if (!used[0]) {
+        res.status(409).json({ valid: false, error: "No valid ticket found for that phone number" });
+        return;
+      }
+      res.status(409).json({
+        valid: false,
+        status: "used",
+        error: "Ticket has already been used",
+        usedAt: used[0].scannedAt,
+        ticketId: used[0].id,
+        ticket: await eventTicketDetails(db, used[0].id),
+      });
       return;
     }
     const updated = await db
@@ -79,15 +112,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.status(200).json({ valid: true, ticketId, ticket: await eventTicketDetails(db, ticketId) });
     return;
   }
+  const existingEventTicket = await db
+    .select({ status: eventTickets.status, scannedAt: eventTickets.scannedAt })
+    .from(eventTickets)
+    .where(eq(eventTickets.id, ticketId))
+    .limit(1);
+  if (existingEventTicket[0]?.status === "used") {
+    res.status(409).json({ valid: false, status: "used", error: "Ticket has already been used", usedAt: existingEventTicket[0].scannedAt, ticketId, ticket: await eventTicketDetails(db, ticketId) });
+    return;
+  }
   const legacyUpdated = await db
     .update(tickets)
-    .set({ status: "used" })
+    .set({ status: "used", scannedAt: new Date().toISOString() })
     .where(and(eq(tickets.id, ticketId), eq(tickets.status, "valid")))
     .returning({ id: tickets.id });
   if (!legacyUpdated.length) {
+    const legacy = await db
+      .select({ status: tickets.status, scannedAt: tickets.scannedAt })
+      .from(tickets)
+      .where(eq(tickets.id, ticketId))
+      .limit(1);
+    if (legacy[0]?.status === "used") {
+      res.status(409).json({ valid: false, status: "used", error: "Ticket has already been used", usedAt: legacy[0].scannedAt, ticketId, ticket: await legacyTicketDetails(db, ticketId) });
+      return;
+    }
     res.status(409).json({ valid: false, error: "Ticket is missing or already used" });
     return;
   }
-  const payment = await db.select({ amount: orders.totalAmount }).from(orders).where(eq(orders.id, ticketId)).limit(1);
-  res.status(200).json({ valid: true, ticketId, ticket: { paymentReference: ticketId, amount: payment[0]?.amount || null } });
+  res.status(200).json({ valid: true, ticketId, ticket: await legacyTicketDetails(db, ticketId) });
 }

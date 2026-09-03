@@ -24,6 +24,9 @@ export async function ensureTicketSchema() {
         authToken: process.env.TURSO_AUTH_TOKEN,
       });
       for (const sql of schemaStatements) await client.execute(sql);
+      try { await client.execute("ALTER TABLE tickets ADD COLUMN scanned_at TEXT"); } catch (error) {
+        if (!String(error).toLowerCase().includes("duplicate column")) throw error;
+      }
       try { await client.execute("ALTER TABLE events ADD COLUMN image_url TEXT"); } catch (error) {
         if (!String(error).toLowerCase().includes("duplicate column")) throw error;
       }
