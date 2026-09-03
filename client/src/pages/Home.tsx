@@ -37,12 +37,14 @@ import EventManagement from "./EventManagement";
 type Order = {
   id: string;
   buyerEmail: string;
+  buyerPhone?: string | null;
   totalAmount: number;
   createdAt: string | number | Date;
 };
-type TicketRow = { id: string; orderId: string; status: "valid" | "used"; scannedAt?: string | null };
+type TicketRow = { id: string; orderId: string; status: "valid" | "used"; scannedAt?: string | null; eventId?: string | null; eventTitle?: string | null; buyerName?: string | null; buyerPhone?: string | null };
+type EventRow = { id: string; title: string };
 
-type Summary = { orders: Order[]; tickets: TicketRow[] };
+type Summary = { orders: Order[]; tickets: TicketRow[]; events: EventRow[] };
 const money = (value: number) =>
   `KSh ${new Intl.NumberFormat("en-KE", { maximumFractionDigits: 0 }).format(value / 100)}`;
 const dateLabel = (value: string | number | Date) =>
@@ -68,7 +70,7 @@ const todayLabel = () =>
     year: "numeric",
   }).format(new Date());
 
-const emptySummary: Summary = { orders: [], tickets: [] };
+const emptySummary: Summary = { orders: [], tickets: [], events: [] };
 export function shouldShowAdminLogin(
   isAuthenticated: boolean,
   authLoading: boolean
@@ -113,7 +115,7 @@ export default function Home() {
       .then(data => {
         if (active) {
           setError("");
-          setSummary(data);
+          setSummary({ ...data, events: Array.isArray(data.events) ? data.events : [] });
         }
       })
       .catch(error => {
@@ -398,6 +400,7 @@ function Overview({
       <OrdersTable
         orders={summary.orders}
         tickets={summary.tickets}
+        events={summary.events}
         loading={loading}
       />
     </div>
@@ -472,30 +475,36 @@ function Progress({
 function OrdersTable({
   orders,
   tickets,
+  events,
   loading,
 }: {
   orders: Order[];
   tickets: TicketRow[];
+  events: EventRow[];
   loading: boolean;
 }) {
   const [query, setQuery] = useState("");
+  const [eventFilter, setEventFilter] = useState("all");
   const [page, setPage] = useState(1);
   const pageSize = 6;
-  const filtered = orders.filter(
-    order =>
-      order.buyerEmail.toLowerCase().includes(query.toLowerCase()) ||
-      order.id.toLowerCase().includes(query.toLowerCase())
+  const filtered = orders.filter(order =>
+    (eventFilter === "all" || tickets.some(ticket => ticket.orderId === order.id && ticket.eventId === eventFilter)) &&
+    (order.buyerEmail.toLowerCase().includes(query.toLowerCase()) ||
+      order.id.toLowerCase().includes(query.toLowerCase()))
   );
   const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const visible = filtered.slice((page - 1) * pageSize, page * pageSize);
   const exportOrders = () => {
     const escapeCsv = (value: unknown) => `"${String(value ?? "").replace(/"/g, '""')}"`;
     const rows = [
-      ["Order", "Buyer email", "Tickets", "Amount (KSh)", "Status", "Created (EAT)"],
+      ["Order", "Event", "Buyer name", "Phone number", "Buyer email", "Tickets", "Amount (KSh)", "Status", "Created (EAT)"],
       ...filtered.map(order => {
         const related = tickets.filter(ticket => ticket.orderId === order.id);
         return [
           order.id,
+          related.find(ticket => ticket.eventTitle)?.eventTitle || "Legacy ticket",
+          related.find(ticket => ticket.buyerName)?.buyerName || "—",
+          related.find(ticket => ticket.buyerPhone)?.buyerPhone || order.buyerPhone || "—",
           order.buyerEmail,
           related.length,
           (order.totalAmount / 100).toFixed(2),
@@ -522,6 +531,15 @@ function OrdersTable({
           </p>
         </div>
         <div className="flex gap-2">
+          <select
+            aria-label="Filter orders by event"
+            value={eventFilter}
+            onChange={event => { setEventFilter(event.target.value); setPage(1); }}
+            className="h-9 max-w-48 rounded-lg border border-slate-200 bg-slate-50 px-2 text-sm outline-none focus:border-indigo-400"
+          >
+            <option value="all">All events</option>
+            {events.map(event => <option key={event.id} value={event.id}>{event.title}</option>)}
+          </select>
           <label className="relative flex-1 sm:w-56">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input
@@ -552,6 +570,7 @@ function OrdersTable({
               <tr>
                 <th className="px-6 py-3 font-semibold">Order</th>
                 <th className="px-6 py-3 font-semibold">Buyer</th>
+                <th className="px-6 py-3 font-semibold">Phone</th>
                 <th className="px-6 py-3 font-semibold">Tickets</th>
                 <th className="px-6 py-3 font-semibold">Amount</th>
                 <th className="px-6 py-3 font-semibold">Status</th>
@@ -562,7 +581,7 @@ function OrdersTable({
               {loading ? (
                 [1, 2, 3].map(i => (
                   <tr key={i}>
-                    <td colSpan={6} className="px-6 py-5">
+                    <td colSpan={7} className="px-6 py-5">
                       <div className="h-4 animate-pulse rounded bg-slate-100" />
                     </td>
                   </tr>
@@ -589,6 +608,9 @@ function OrdersTable({
                         {order.buyerEmail}
                       </td>
                       <td className="px-6 py-4 text-slate-500">
+                        {related.find(ticket => ticket.buyerPhone)?.buyerPhone || order.buyerPhone || "—"}
+                      </td>
+                      <td className="px-6 py-4 text-slate-500">
                         {related.length || "—"}
                       </td>
                       <td className="px-6 py-4 font-medium text-slate-800">
@@ -613,7 +635,7 @@ function OrdersTable({
                 })
               ) : (
                 <tr>
-                  <td colSpan={6}>
+                  <td colSpan={7}>
                     <EmptyState
                       icon={ClipboardList}
                       title={query ? "No matching orders" : "No orders yet"}
@@ -669,11 +691,12 @@ function TicketTable({ tickets }: { tickets: TicketRow[] }) {
       </CardHeader>
       <CardContent className="p-0">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[560px] text-left text-sm">
+          <table className="w-full min-w-[680px] text-left text-sm">
             <thead className="border-y border-slate-100 bg-slate-50/70 text-xs uppercase tracking-wider text-slate-400">
               <tr>
                 <th className="px-6 py-3 font-semibold">Ticket ID</th>
                 <th className="px-6 py-3 font-semibold">Order</th>
+                <th className="px-6 py-3 font-semibold">Phone</th>
                 <th className="px-6 py-3 font-semibold">Scan status</th>
                 <th className="px-6 py-3 font-semibold">Verification</th>
               </tr>
@@ -686,6 +709,9 @@ function TicketTable({ tickets }: { tickets: TicketRow[] }) {
                   </td>
                   <td className="px-6 py-4 font-mono text-xs text-slate-400">
                     #{ticket.orderId.slice(-8)}
+                  </td>
+                  <td className="px-6 py-4 text-xs text-slate-500">
+                    {ticket.buyerPhone || "—"}
                   </td>
                   <td className="px-6 py-4">
                     <Badge
@@ -786,6 +812,7 @@ function SubPage({
         <OrdersTable
           orders={summary.orders}
           tickets={summary.tickets}
+          events={summary.events}
           loading={loading}
         />
       )}
@@ -845,7 +872,7 @@ function SubPage({
         </Card>
       )}
       {title === "Tickets" && !loading && summary.tickets.length > 0 && (
-        <TicketTable tickets={summary.tickets} />
+      <TicketTable tickets={summary.tickets} />
       )}
       {title === "Settings" &&
         (loading ? (

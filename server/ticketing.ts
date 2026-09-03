@@ -283,14 +283,25 @@ export function registerTicketingRoutes(
       setTimeout(() => reject(new Error("Dashboard query timed out")), 8000);
     });
     try {
-      const [orderRows, ticketRows] = await Promise.race([
+      const [orderRows, ticketRows, eventTicketRows, eventRows] = await Promise.race([
         Promise.all([
-          db.select().from(orders).orderBy(desc(orders.createdAt)).limit(20),
-          db.select().from(tickets).orderBy(desc(tickets.id)).limit(100),
+          db.select().from(orders).orderBy(desc(orders.createdAt)),
+          db.select().from(tickets),
+          db.select({
+            id: eventTickets.id,
+            orderId: eventTickets.paystackRef,
+            status: eventTickets.status,
+            scannedAt: eventTickets.scannedAt,
+            eventId: eventTickets.eventId,
+            eventTitle: events.title,
+            buyerName: eventTickets.buyerName,
+            buyerPhone: eventTickets.buyerPhone,
+          }).from(eventTickets).leftJoin(events, eq(eventTickets.eventId, events.id)),
+          db.select({ id: events.id, title: events.title }).from(events),
         ]),
         timeout,
       ]);
-      return res.json({ orders: orderRows, tickets: ticketRows });
+      return res.json({ orders: orderRows, tickets: [...ticketRows, ...eventTicketRows], events: eventRows });
     } catch (error) {
       console.error("[Dashboard summary]", error);
       return res
