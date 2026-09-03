@@ -130,7 +130,7 @@ export default function GateCheckin() {
     try {
       const response = await fetch("/api/gate/checkin", { method: "POST", headers: { "Content-Type": "application/json", "x-gate-pin": pin }, body: JSON.stringify({ ticketId: ticketId.trim(), phone: phone.trim(), confirm: true }) });
       const body = await response.json().catch(() => ({}));
-      if (response.ok) { setEntryConfirmed(true); setTicket(body.ticket || ticket); setMessage("Entry confirmed — ticket marked used"); setToast("Entry confirmed. This ticket is now used."); }
+      if (response.ok) { reset(); setToast("Entry confirmed. Scan or enter the next ticket."); }
       else if (response.status === 409) { setResult("used"); setEntryConfirmed(true); setTicket(body.ticket || ticket); setMessage(body.error || "Ticket has already been used"); }
       else setMessage(body.error || "Unable to confirm entry");
     } catch { setMessage("Network error. Entry was not confirmed."); }
