@@ -44,8 +44,8 @@ export default function TransactionsTable() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const load = useCallback(async (nextPage: number) => {
-    setLoading(true);
+  const load = useCallback(async (nextPage: number, silent = false) => {
+    if (!silent) setLoading(true);
     setError("");
     try {
       const response = await fetch(`/api/paystack/transactions?page=${nextPage}&perPage=20`);
@@ -57,13 +57,13 @@ export default function TransactionsTable() {
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Unable to load Paystack transactions");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, []);
 
   useEffect(() => { void load(1); }, [load]);
   useEffect(() => {
-    const timer = window.setInterval(() => void load(page), 5000);
+    const timer = window.setInterval(() => void load(page, true), 5000);
     return () => window.clearInterval(timer);
   }, [load, page]);
 

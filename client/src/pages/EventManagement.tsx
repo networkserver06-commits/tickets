@@ -40,15 +40,15 @@ export default function EventManagement() {
   const [uploading, setUploading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  async function load() {
-    setLoading(true);
+  async function load(silent = false) {
+    if (!silent) setLoading(true);
     const [response, clientResponse] = await Promise.all([fetch("/api/management/events", { cache: "no-store", credentials: "same-origin" }), fetch("/api/management/clients", { cache: "no-store", credentials: "same-origin" })]);
     const body = await readJson(response); const clientBody = await readJson(clientResponse);
     if (!response.ok) throw new Error(body.error || "Unable to load events");
     if (!clientResponse.ok) throw new Error(clientBody.error || "Unable to load payout accounts");
     setEvents(body.events || []);
     setClients(clientBody.clients || []);
-    setLoading(false);
+    if (!silent) setLoading(false);
   }
 
   useEffect(() => {
@@ -58,7 +58,7 @@ export default function EventManagement() {
     });
   }, []);
   useEffect(() => {
-    const timer = window.setInterval(() => void load().catch(() => undefined), 5000);
+    const timer = window.setInterval(() => void load(true).catch(() => undefined), 5000);
     return () => window.clearInterval(timer);
   }, []);
 

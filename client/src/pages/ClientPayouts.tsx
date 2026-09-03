@@ -24,8 +24,8 @@ export default function ClientPayouts() {
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const load = async () => {
-    setLoading(true);
+  const load = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const response = await fetch("/api/management/clients", { cache: "no-store", credentials: "same-origin" });
       const payload = await response
@@ -39,14 +39,14 @@ export default function ClientPayouts() {
         reason instanceof Error ? reason.message : "Unable to load clients"
       );
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
   useEffect(() => {
     void load();
   }, []);
   useEffect(() => {
-    const timer = window.setInterval(() => void load(), 5000);
+    const timer = window.setInterval(() => void load(true), 5000);
     return () => window.clearInterval(timer);
   }, []);
   const remove = async (client: Client) => {
