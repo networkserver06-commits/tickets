@@ -128,7 +128,7 @@ export default function EventManagement() {
         body: JSON.stringify({
           ...form,
           clientId: form.clientId,
-          ticketPrice: Number(form.ticketPrice),
+          ticketPrice: Math.round(Number(form.ticketPrice) * 100),
           capacity: Number(form.capacity),
           imageUrl: form.imageUrl,
         }),
@@ -173,7 +173,7 @@ export default function EventManagement() {
         {loading ? <p className="text-sm text-slate-500">Loading published events…</p> : events.length === 0 ? <p className="rounded-xl border bg-white p-4 text-sm text-slate-500">No events published yet.</p> : events.map(e => (
           <div key={e.id} className="rounded-xl border bg-white p-4">
             <div className="flex flex-wrap justify-between gap-3"><div><p className="font-medium">{e.title}</p><p className="text-sm text-slate-500">{e.eventDate || "Date to be announced"}{e.venue ? ` · ${e.venue}` : ""}</p><p className="mt-1 text-xs text-indigo-600">Payout: {clients.find(client => client.id === e.clientId)?.businessName || "Selected account"} · {e.paystackSubaccountCode}</p></div><div className="text-right text-sm"><p className="font-semibold text-slate-900">KSh {(Number(e.ticketPrice || 0) * Number(e.soldCount || 0)).toLocaleString("en-KE")} paid</p><p className="text-xs text-slate-500">{e.soldCount || 0} / {e.capacity} tickets sold</p></div></div>
-            <div className="mt-2 flex flex-wrap items-center gap-4"><a className="text-sm font-medium text-indigo-600 hover:underline" href={`/event/${encodeURIComponent(e.id)}`}>Open customer checkout</a><button type="button" className="text-sm font-medium text-slate-600 hover:underline" onClick={() => { setEditingId(e.id); setForm({ id: e.id, clientId: e.clientId || "", title: e.title || "", description: e.description || "", eventDate: e.eventDate || "", venue: e.venue || "", ticketPrice: String(e.ticketPrice || ""), capacity: String(e.capacity || ""), imageUrl: e.imageUrl || "" }); }}>Edit</button><button type="button" className="text-sm font-medium text-rose-600 hover:underline" onClick={() => void removeEvent(e.id, e.title)}>Remove event</button></div>
+            <div className="mt-2 flex flex-wrap items-center gap-4"><a className="text-sm font-medium text-indigo-600 hover:underline" href={`/event/${encodeURIComponent(e.id)}`}>Open customer checkout</a><button type="button" className="text-sm font-medium text-slate-600 hover:underline" onClick={() => { setEditingId(e.id); setForm({ id: e.id, clientId: e.clientId || "", title: e.title || "", description: e.description || "", eventDate: e.eventDate || "", venue: e.venue || "", ticketPrice: e.ticketPrice ? String(Number(e.ticketPrice) / 100) : "", capacity: String(e.capacity || ""), imageUrl: e.imageUrl || "" }); }}>Edit</button><button type="button" className="text-sm font-medium text-rose-600 hover:underline" onClick={() => void removeEvent(e.id, e.title)}>Remove event</button></div>
           </div>
         ))}
       </div>
