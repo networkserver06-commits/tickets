@@ -152,7 +152,20 @@ export function registerTicketingRoutes(
             .from(eventTickets)
             .leftJoin(events, eq(eventTickets.eventId, events.id))
               .where(eq(eventTickets.paystackRef, ticketId));
-    const ticketRows = result[0] ? result : eventResult[0] ? eventResult : referenceResult;
+    let ticketRows = result[0] ? result : eventResult[0] ? eventResult : referenceResult;
+    if (!ticketRows.length && getPaystackSecret() && ticketId.startsWith("passage-")) {
+      try {
+        const verification = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(ticketId)}`, { headers: { Authorization: `Bearer ${getPaystackSecret()}` } });
+        const verified = await verification.json().catch(() => null);
+        if (verification.ok && verified?.data?.status === "success") {
+          await processWebhook({ event: "charge.success", data: verified.data }, dbFactory);
+          const recovered = await db.select({ id: eventTickets.id, status: eventTickets.status, buyerName: eventTickets.buyerName, buyerEmail: eventTickets.buyerEmail, buyerPhone: eventTickets.buyerPhone, paystackRef: eventTickets.paystackRef, eventId: events.id, eventTitle: events.title, eventDate: events.eventDate, venue: events.venue }).from(eventTickets).leftJoin(events, eq(eventTickets.eventId, events.id)).where(eq(eventTickets.paystackRef, ticketId));
+          if (recovered.length) ticketRows = recovered;
+        }
+      } catch (error) {
+        console.error("[Ticket recovery] Paystack verification failed", error);
+      }
+    }
     const ticket = ticketRows[0];
     if (!ticket) return res.status(404).json({ error: "Ticket not found" });
     return res.json({ ticket, tickets: ticketRows });
