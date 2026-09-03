@@ -100,6 +100,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
   const body = (req.body || {}) as Record<string, unknown>;
+  if (body.confirm !== true) {
+    res.status(400).json({ valid: false, error: "Ticket must be confirmed before entry is recorded" });
+    return;
+  }
   const ticketId = String(body.ticketId || "").trim();
   const phone = String(body.phone || "").trim();
   const phoneVariants = kenyanPhoneVariants(phone);
