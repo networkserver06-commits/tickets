@@ -177,27 +177,14 @@
 }
 
 
-/* Android Chrome-safe gate rendering. Keep the form in one normal paint flow
-   and avoid large composited shadows or forced GPU layers. */
+/* Keep the gate page in a normal paint flow on mobile browsers. */
 .gate-control-root {
-  isolation: isolate;
+  overflow-x: hidden;
   -webkit-transform: none;
   transform: none;
-  -webkit-backface-visibility: visible;
-  backface-visibility: visible;
 }
 
 .gate-control-root video {
   display: block;
   max-width: 100%;
-  -webkit-transform: none;
-  transform: none;
-  -webkit-backface-visibility: visible;
-  backface-visibility: visible;
-}
-
-@media (max-width: 640px) {
-  .gate-control-root {
-    contain: layout style;
-  }
 }
