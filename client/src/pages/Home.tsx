@@ -488,6 +488,30 @@ function OrdersTable({
   );
   const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const visible = filtered.slice((page - 1) * pageSize, page * pageSize);
+  const exportOrders = () => {
+    const escapeCsv = (value: unknown) => `"${String(value ?? "").replace(/"/g, '""')}"`;
+    const rows = [
+      ["Order", "Buyer email", "Tickets", "Amount (KSh)", "Status", "Created (EAT)"],
+      ...filtered.map(order => {
+        const related = tickets.filter(ticket => ticket.orderId === order.id);
+        return [
+          order.id,
+          order.buyerEmail,
+          related.length,
+          (order.totalAmount / 100).toFixed(2),
+          related.some(ticket => ticket.status === "valid") ? "Valid" : "Used",
+          dateTimeLabel(order.createdAt),
+        ];
+      }),
+    ];
+    const csv = rows.map(row => row.map(escapeCsv).join(",")).join("\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `passage-orders-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
   return (
     <Card className="border-0 bg-white shadow-[0_16px_45px_rgba(15,23,42,0.06)]">
       <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -514,6 +538,8 @@ function OrdersTable({
           <Button
             variant="ghost"
             className="gap-2 text-indigo-600 hover:bg-indigo-50"
+            onClick={exportOrders}
+            disabled={loading || filtered.length === 0}
           >
             <Download className="h-4 w-4" /> Export
           </Button>

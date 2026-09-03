@@ -14,6 +14,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       path.startsWith("/api/trpc/") ||
       path === "/api/webhook/paystack" ||
       path === "/api/dashboard/summary" ||
+      path === "/api/paystack/transactions" ||
       path === "/api/tickets/verify" ||
       path.startsWith("/api/tickets/") ||
       path === "/api/gate/checkin" ||
@@ -35,6 +36,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (
       path === "/api/webhook/paystack" ||
       path === "/api/dashboard/summary" ||
+      path === "/api/paystack/transactions" ||
       path === "/api/tickets/verify" ||
       path.startsWith("/api/tickets/")
     ) {
