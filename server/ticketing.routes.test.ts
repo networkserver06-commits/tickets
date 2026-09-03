@@ -1,17 +1,24 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { registerTicketingRoutes } from "./ticketing";
-import { sdk } from "./_core/sdk";
 
-type Handler = (req: any, res: any) => unknown;
-function harness(db: any) {
+type Handler = (req: any, res: any, next?: () => unknown) => unknown;
+function harness(db: any, adminMiddleware?: Handler) {
   const routes = new Map<string, Handler>();
   const app = {
     post: (path: string, ...handlers: Handler[]) =>
       routes.set(`POST ${path}`, handlers[handlers.length - 1]!),
     get: (path: string, ...handlers: Handler[]) =>
-      routes.set(`GET ${path}`, handlers[handlers.length - 1]!),
+      routes.set(`GET ${path}`, async (req, res) => {
+        let index = -1;
+        const next = async () => {
+          index += 1;
+          const handler = handlers[index];
+          return handler ? handler(req, res, next) : undefined;
+        };
+        return next();
+      }),
   } as any;
-  registerTicketingRoutes(app, () => db);
+  registerTicketingRoutes(app, () => db, adminMiddleware);
   return routes;
 }
 function response() {
@@ -56,7 +63,7 @@ describe("ticketing REST routes", () => {
 
   it("requires admin authentication before contacting Paystack", async () => {
     process.env.PAYSTACK_SECRET_KEY = "test-secret";
-    const routes = harness({});
+    const routes = harness({}, (_req, res) => res.status(401).json({ error: "Admin authentication required" }));
     const res = response();
     await routes.get("GET /api/paystack/transactions")!(
       { headers: {}, query: {} },
@@ -69,10 +76,7 @@ describe("ticketing REST routes", () => {
   });
 
   it("rejects an authenticated non-admin before contacting Paystack", async () => {
-    vi.spyOn(sdk, "authenticateRequest").mockResolvedValue({
-      role: "user",
-    } as any);
-    const routes = harness({});
+    const routes = harness({}, (_req, res) => res.status(403).json({ error: "Admin role required" }));
     const res = response();
     await routes.get("GET /api/paystack/transactions")!(
       { headers: {}, query: {} },
@@ -85,9 +89,6 @@ describe("ticketing REST routes", () => {
   });
 
   it("returns a configuration error when the Paystack secret is missing", async () => {
-    vi.spyOn(sdk, "authenticateRequest").mockResolvedValue({
-      role: "admin",
-    } as any);
     delete process.env.PAYSTACK_SECRET_KEY;
     const routes = harness({});
     const res = response();
@@ -102,9 +103,6 @@ describe("ticketing REST routes", () => {
   });
 
   it("maps a Paystack upstream failure to a safe gateway error", async () => {
-    vi.spyOn(sdk, "authenticateRequest").mockResolvedValue({
-      role: "admin",
-    } as any);
     process.env.PAYSTACK_SECRET_KEY = "test-secret";
     vi.stubGlobal(
       "fetch",
@@ -117,7 +115,7 @@ describe("ticketing REST routes", () => {
           )
         )
     );
-    const routes = harness({});
+    const routes = harness({}, (_req, _res, next) => next?.());
     const res = response();
     await routes.get("GET /api/paystack/transactions")!(
       { headers: {}, query: {} },

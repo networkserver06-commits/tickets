@@ -17,7 +17,6 @@ import {
 } from "../drizzle/ticketing-schema.js";
 import { getTicketDb } from "./ticketDb.js";
 import { normalizeKenyanPhone } from "./phone.js";
-import { sdk } from "./_core/sdk.js";
 import { sendTicketConfirmation } from "./resend.js";
 
 const getPaystackSecret = () => process.env.PAYSTACK_SECRET_KEY;
@@ -244,15 +243,7 @@ export function registerTicketingRoutes(
     }
   );
 
-  app.get("/api/paystack/transactions", async (req: Request, res: Response) => {
-    let user;
-    try {
-      user = await sdk.authenticateRequest(req);
-    } catch {
-      return res.status(401).json({ error: "Admin authentication required" });
-    }
-    if (!isAdminUser(user))
-      return res.status(403).json({ error: "Admin role required" });
+  app.get("/api/paystack/transactions", adminMiddleware, async (req: Request, res: Response) => {
     const secret = getPaystackSecret();
     if (!secret)
       return res
