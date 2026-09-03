@@ -444,9 +444,21 @@ async function processWebhook(
 export async function getDashboardData() {
   const db = getTicketDb();
   if (!db) return { orders: [], tickets: [] };
-  const [orderRows, ticketRows] = await Promise.all([
-    db.select().from(orders).orderBy(desc(orders.createdAt)).limit(20),
-    db.select().from(tickets).limit(100),
+  const [orderRows, ticketRows, eventTicketRows] = await Promise.all([
+    db.select().from(orders).orderBy(desc(orders.createdAt)),
+    db.select().from(tickets),
+    db.select({
+      id: eventTickets.id,
+      orderId: eventTickets.paystackRef,
+      status: eventTickets.status,
+      scannedAt: eventTickets.scannedAt,
+    }).from(eventTickets),
   ]);
-  return { orders: orderRows, tickets: ticketRows };
+  return {
+    orders: orderRows,
+    tickets: [
+      ...ticketRows,
+      ...eventTicketRows,
+    ],
+  };
 }

@@ -40,7 +40,7 @@ type Order = {
   totalAmount: number;
   createdAt: string | number | Date;
 };
-type TicketRow = { id: string; orderId: string; status: "valid" | "used" };
+type TicketRow = { id: string; orderId: string; status: "valid" | "used"; scannedAt?: string | null };
 
 type Summary = { orders: Order[]; tickets: TicketRow[] };
 const money = (value: number) =>
@@ -51,6 +51,22 @@ const dateLabel = (value: string | number | Date) =>
     month: "short",
     day: "numeric",
   });
+const dateTimeLabel = (value: string | number | Date | null | undefined) =>
+  value
+    ? new Intl.DateTimeFormat("en-KE", {
+        timeZone: "Africa/Nairobi",
+        dateStyle: "medium",
+        timeStyle: "short",
+      }).format(new Date(value))
+    : "—";
+const todayLabel = () =>
+  new Intl.DateTimeFormat("en-KE", {
+    timeZone: "Africa/Nairobi",
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date());
 
 const emptySummary: Summary = { orders: [], tickets: [] };
 export function shouldShowAdminLogin(
@@ -172,7 +188,7 @@ function Overview({
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
           <p className="mb-2 text-sm font-medium text-indigo-600">
-            Monday, August 30, 2026
+            {todayLabel()}
           </p>
           <h1 className="text-3xl font-semibold tracking-[-0.04em] text-slate-950 sm:text-4xl">
             Good morning, operator.
@@ -658,7 +674,7 @@ function TicketTable({ tickets }: { tickets: TicketRow[] }) {
                   </td>
                   <td className="px-6 py-4 text-xs text-slate-500">
                     {ticket.status === "used"
-                      ? "Verified at door"
+                      ? `Verified at ${dateTimeLabel(ticket.scannedAt)}`
                       : "Awaiting scan"}
                   </td>
                 </tr>
