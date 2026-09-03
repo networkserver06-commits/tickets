@@ -62,6 +62,10 @@ export default function TransactionsTable() {
   }, []);
 
   useEffect(() => { void load(1); }, [load]);
+  useEffect(() => {
+    const timer = window.setInterval(() => void load(page), 5000);
+    return () => window.clearInterval(timer);
+  }, [load, page]);
 
   return <Card className="border-0 bg-white shadow-[0_16px_45px_rgba(15,23,42,0.06)]">
     <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

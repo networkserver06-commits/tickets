@@ -45,6 +45,10 @@ export default function ClientPayouts() {
   useEffect(() => {
     void load();
   }, []);
+  useEffect(() => {
+    const timer = window.setInterval(() => void load(), 5000);
+    return () => window.clearInterval(timer);
+  }, []);
   const remove = async (client: Client) => {
     if (!window.confirm(`Delete the payout profile for ${client.businessName}?`)) return;
     setError("");

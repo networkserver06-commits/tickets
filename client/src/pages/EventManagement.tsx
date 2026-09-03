@@ -57,6 +57,10 @@ export default function EventManagement() {
       setLoading(false);
     });
   }, []);
+  useEffect(() => {
+    const timer = window.setInterval(() => void load().catch(() => undefined), 5000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   async function removeEvent(id: string, title: string) {
     if (!window.confirm(`Remove the event “${title}”? This cannot be undone.`)) return;
