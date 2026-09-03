@@ -292,6 +292,7 @@ export function registerTicketingRoutes(
             orderId: eventTickets.paystackRef,
             status: eventTickets.status,
             scannedAt: eventTickets.scannedAt,
+            createdAt: eventTickets.createdAt,
             eventId: eventTickets.eventId,
             eventTitle: events.title,
             buyerName: eventTickets.buyerName,
@@ -307,6 +308,70 @@ export function registerTicketingRoutes(
       return res
         .status(503)
         .json({ error: "Dashboard data temporarily unavailable" });
+    }
+  });
+
+  app.delete?.("/api/dashboard/orders/:id", adminMiddleware, async (req, res) => {
+    const db = dbFactory();
+    if (!db) return res.status(503).json({ error: "Database unavailable" });
+    const id = String(req.params.id || "");
+    try {
+      const deleted = await db.transaction(async (tx: any) => {
+        const order = (await tx.select().from(orders).where(eq(orders.id, id)).limit(1))[0];
+        if (!order) return null;
+        const legacyTickets = await tx.select().from(tickets).where(eq(tickets.orderId, id));
+        const eventTicketRows = await tx.select().from(eventTickets).where(eq(eventTickets.paystackRef, id));
+        await tx.delete(tickets).where(eq(tickets.orderId, id));
+        await tx.delete(eventTickets).where(eq(eventTickets.paystackRef, id));
+        await tx.delete(orders).where(eq(orders.id, id));
+        return { order, legacyTickets, eventTickets: eventTicketRows };
+      });
+      if (!deleted) return res.status(404).json({ error: "Order not found" });
+      return res.json({ deleted });
+    } catch (error) {
+      console.error("[Dashboard delete order]", error);
+      return res.status(500).json({ error: "Unable to delete order" });
+    }
+  });
+
+  app.delete?.("/api/dashboard/tickets/:id", adminMiddleware, async (req, res) => {
+    const db = dbFactory();
+    if (!db) return res.status(503).json({ error: "Database unavailable" });
+    const id = String(req.params.id || "");
+    try {
+      const eventTicket = (await db.select().from(eventTickets).where(eq(eventTickets.id, id)).limit(1))[0];
+      if (eventTicket) {
+        await db.delete(eventTickets).where(eq(eventTickets.id, id));
+        return res.json({ deleted: { kind: "eventTicket", eventTicket } });
+      }
+      const legacyTicket = (await db.select().from(tickets).where(eq(tickets.id, id)).limit(1))[0];
+      if (!legacyTicket) return res.status(404).json({ error: "Ticket not found" });
+      await db.delete(tickets).where(eq(tickets.id, id));
+      return res.json({ deleted: { kind: "legacyTicket", legacyTicket } });
+    } catch (error) {
+      console.error("[Dashboard delete ticket]", error);
+      return res.status(500).json({ error: "Unable to delete ticket" });
+    }
+  });
+
+  app.post("/api/dashboard/restore", adminMiddleware, async (req, res) => {
+    const db = dbFactory();
+    if (!db) return res.status(503).json({ error: "Database unavailable" });
+    const deleted = req.body?.deleted;
+    try {
+      await db.transaction(async (tx: any) => {
+        if (deleted?.order) {
+          await tx.insert(orders).values(deleted.order);
+          if (deleted.legacyTickets?.length) await tx.insert(tickets).values(deleted.legacyTickets);
+          if (deleted.eventTickets?.length) await tx.insert(eventTickets).values(deleted.eventTickets);
+        } else if (deleted?.kind === "eventTicket") await tx.insert(eventTickets).values(deleted.eventTicket);
+        else if (deleted?.kind === "legacyTicket") await tx.insert(tickets).values(deleted.legacyTicket);
+        else throw new Error("Invalid restore payload");
+      });
+      return res.json({ restored: true });
+    } catch (error) {
+      console.error("[Dashboard restore]", error);
+      return res.status(500).json({ error: "Unable to undo deletion" });
     }
   });
 }

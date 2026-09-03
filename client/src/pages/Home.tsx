@@ -15,6 +15,7 @@ import {
   Settings,
   Ticket,
   TrendingUp,
+  Trash2,
   XCircle,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -41,7 +42,7 @@ type Order = {
   totalAmount: number;
   createdAt: string | number | Date;
 };
-type TicketRow = { id: string; orderId: string; status: "valid" | "used"; scannedAt?: string | null; eventId?: string | null; eventTitle?: string | null; buyerName?: string | null; buyerPhone?: string | null };
+type TicketRow = { id: string; orderId: string; status: "valid" | "used"; scannedAt?: string | null; createdAt?: string | null; eventId?: string | null; eventTitle?: string | null; buyerName?: string | null; buyerPhone?: string | null };
 type EventRow = { id: string; title: string };
 
 type Summary = { orders: Order[]; tickets: TicketRow[]; events: EventRow[] };
@@ -90,6 +91,40 @@ export default function Home() {
   const [summary, setSummary] = useState<Summary>(emptySummary);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [toast, setToast] = useState<{ message: string; deleted: unknown } | null>(null);
+
+  const deleteRecord = async (kind: "orders" | "tickets", id: string) => {
+    if (!window.confirm(`Delete this ${kind === "orders" ? "order and its tickets" : "ticket"}? You can undo this action for a short time.`)) return;
+    try {
+      const response = await fetch(`/api/dashboard/${kind}/${encodeURIComponent(id)}`, { method: "DELETE", credentials: "same-origin" });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(body.error || "Unable to delete record");
+      if (kind === "orders") setSummary(previous => ({ ...previous, orders: previous.orders.filter(order => order.id !== id), tickets: previous.tickets.filter(ticket => ticket.orderId !== id) }));
+      else setSummary(previous => ({ ...previous, tickets: previous.tickets.filter(ticket => ticket.id !== id) }));
+      setToast({ message: `${kind === "orders" ? "Order" : "Ticket"} deleted`, deleted: body.deleted });
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : "Unable to delete record");
+    }
+  };
+
+  const undoDelete = async () => {
+    if (!toast) return;
+    const response = await fetch("/api/dashboard/restore", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "same-origin", body: JSON.stringify({ deleted: toast.deleted }) });
+    if (response.ok) { setToast(null); void refreshDashboard(); }
+  };
+
+  const refreshDashboard = async () => {
+    const response = await fetch(`/api/dashboard/summary?ts=${Date.now()}`, { credentials: "same-origin", cache: "no-store" });
+    if (!response.ok) return;
+    const data = await response.json();
+    setSummary({ ...data, events: Array.isArray(data.events) ? data.events : [] });
+  };
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = window.setTimeout(() => setToast(null), 8000);
+    return () => window.clearTimeout(timer);
+  }, [toast]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -131,11 +166,13 @@ export default function Home() {
   const adminPath = location.replace(/^\/admin/, "") || "/";
   return (
     <DashboardLayout username={admin?.username} onLogout={logout}>
+      {toast && <div role="status" className="fixed bottom-5 left-1/2 z-50 flex -translate-x-1/2 items-center gap-4 rounded-xl bg-slate-900 px-4 py-3 text-sm font-medium text-white shadow-2xl"><span>{toast.message}</span><button type="button" onClick={() => void undoDelete()} className="font-semibold text-indigo-300 hover:text-indigo-200">Undo</button></div>}
       {adminPath === "/" ? (
         <Overview
           summary={summary}
           loading={loading}
           error={error}
+          onDelete={id => void deleteRecord("orders", id)}
           onRetry={() => window.location.reload()}
         />
       ) : (
@@ -144,6 +181,7 @@ export default function Home() {
           summary={summary}
           loading={loading}
           error={error}
+          onDelete={(kind, id) => void deleteRecord(kind, id)}
         />
       )}
     </DashboardLayout>
@@ -154,11 +192,13 @@ function Overview({
   summary,
   loading,
   error,
+  onDelete,
   onRetry,
 }: {
   summary: Summary;
   loading: boolean;
   error: string;
+  onDelete: (id: string) => void;
   onRetry: () => void;
 }) {
   const ticketsSold = summary.tickets.length;
@@ -394,6 +434,7 @@ function Overview({
         orders={summary.orders}
         tickets={summary.tickets}
         events={summary.events}
+        onDelete={onDelete}
         loading={loading}
       />
     </div>
@@ -469,11 +510,13 @@ function OrdersTable({
   orders,
   tickets,
   events,
+  onDelete,
   loading,
 }: {
   orders: Order[];
   tickets: TicketRow[];
   events: EventRow[];
+  onDelete: (id: string) => void;
   loading: boolean;
 }) {
   const [query, setQuery] = useState("");
@@ -568,13 +611,14 @@ function OrdersTable({
                 <th className="px-6 py-3 font-semibold">Amount</th>
                 <th className="px-6 py-3 font-semibold">Status</th>
                 <th className="px-6 py-3 font-semibold">Date</th>
+                <th className="px-6 py-3 font-semibold">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 [1, 2, 3].map(i => (
                   <tr key={i}>
-                    <td colSpan={7} className="px-6 py-5">
+                    <td colSpan={8} className="px-6 py-5">
                       <div className="h-4 animate-pulse rounded bg-slate-100" />
                     </td>
                   </tr>
@@ -623,12 +667,15 @@ function OrdersTable({
                       <td className="px-6 py-4 text-slate-400">
                         {dateLabel(order.createdAt)}
                       </td>
+                      <td className="px-6 py-4">
+                        <button type="button" aria-label={`Delete order ${order.id}`} onClick={() => onDelete(order.id)} className="rounded-lg p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600"><Trash2 className="h-4 w-4" /></button>
+                      </td>
                     </tr>
                   );
                 })
               ) : (
                 <tr>
-                  <td colSpan={7}>
+                  <td colSpan={8}>
                     <EmptyState
                       icon={ClipboardList}
                       title={query ? "No matching orders" : "No orders yet"}
@@ -673,7 +720,12 @@ function OrdersTable({
     </Card>
   );
 }
-function TicketTable({ tickets }: { tickets: TicketRow[] }) {
+function TicketTable({ tickets, onDelete }: { tickets: TicketRow[]; onDelete: (id: string) => void }) {
+  const sortedTickets = [...tickets].sort((a, b) => {
+    const aTime = a.scannedAt || a.createdAt || "";
+    const bTime = b.scannedAt || b.createdAt || "";
+    return bTime.localeCompare(aTime) || b.id.localeCompare(a.id);
+  });
   return (
     <Card className="border-0 bg-white shadow-[0_16px_45px_rgba(15,23,42,0.06)]">
       <CardHeader>
@@ -692,10 +744,11 @@ function TicketTable({ tickets }: { tickets: TicketRow[] }) {
                 <th className="px-6 py-3 font-semibold">Phone number</th>
                 <th className="px-6 py-3 font-semibold">Scan status</th>
                 <th className="px-6 py-3 font-semibold">Verification</th>
+                <th className="px-6 py-3 font-semibold">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {tickets.map(ticket => (
+              {sortedTickets.map(ticket => (
                 <tr key={ticket.id}>
                   <td className="px-6 py-4 font-mono text-xs font-semibold text-slate-700">
                     {ticket.id}
@@ -721,6 +774,9 @@ function TicketTable({ tickets }: { tickets: TicketRow[] }) {
                     {ticket.status === "used"
                       ? `Verified at ${dateTimeLabel(ticket.scannedAt)}`
                       : "Awaiting scan"}
+                  </td>
+                  <td className="px-6 py-4">
+                    <button type="button" aria-label={`Delete ticket ${ticket.id}`} onClick={() => onDelete(ticket.id)} className="rounded-lg p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600"><Trash2 className="h-4 w-4" /></button>
                   </td>
                 </tr>
               ))}
@@ -756,11 +812,13 @@ function SubPage({
   summary,
   loading,
   error,
+  onDelete,
 }: {
   path: string;
   summary: Summary;
   loading: boolean;
   error: string;
+  onDelete: (kind: "orders" | "tickets", id: string) => void;
 }) {
   const title =
     path === "/orders"
@@ -806,6 +864,7 @@ function SubPage({
           orders={summary.orders}
           tickets={summary.tickets}
           events={summary.events}
+          onDelete={id => onDelete("orders", id)}
           loading={loading}
         />
       )}
@@ -865,7 +924,7 @@ function SubPage({
         </Card>
       )}
       {title === "Tickets" && !loading && summary.tickets.length > 0 && (
-      <TicketTable tickets={summary.tickets} />
+      <TicketTable tickets={summary.tickets} onDelete={id => onDelete("tickets", id)} />
       )}
       {title === "Settings" &&
         (loading ? (
