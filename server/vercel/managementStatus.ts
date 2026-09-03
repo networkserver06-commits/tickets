@@ -12,6 +12,7 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
   }
   const paystackConfigured = Boolean(process.env.PAYSTACK_SECRET_KEY?.trim());
   const tursoConfigured = Boolean(process.env.TURSO_DATABASE_URL?.trim() && process.env.TURSO_AUTH_TOKEN?.trim());
+  const managedStorage = Boolean(process.env.BUILT_IN_FORGE_API_URL?.trim() && process.env.BUILT_IN_FORGE_API_KEY?.trim());
   res.setHeader("Cache-Control", "no-store, max-age=0");
-  res.status(200).json({ paystackConfigured, tursoConfigured, ready: paystackConfigured && tursoConfigured });
+  res.status(200).json({ paystackConfigured, tursoConfigured, storageConfigured: true, storageMode: managedStorage ? "managed" : "embedded-small-images", ready: paystackConfigured && tursoConfigured });
 }

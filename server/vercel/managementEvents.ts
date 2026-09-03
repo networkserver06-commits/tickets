@@ -31,7 +31,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!id) return res.status(400).json({ error: "Event id is required" });
     try {
       const clients = await listClients().catch(() => []);
-      const selectedClient = clients.find(client => client.id === String(body.clientId || "").trim());
+      const clientId = String(body.clientId || "").trim();
+      const selectedClient = clients.find(client => client.id === clientId);
+      if (clientId && !selectedClient)
+        return res.status(400).json({ error: "Selected payout account was not found" });
       const event = await updateEvent(id, {
         title: typeof body.title === "string" ? body.title.trim() : undefined,
         description: typeof body.description === "string" ? body.description.trim() : undefined,
@@ -66,10 +69,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
   const body = (req.body || {}) as Record<string, unknown>;
   const clients = await listClients().catch(() => []);
-  const selectedClient = clients.find(client => client.id === String(body.clientId || "").trim()) || clients[0];
+  const clientId = String(body.clientId || "").trim();
+  const selectedClient = clients.find(client => client.id === clientId);
   const input = {
     id: String(body.id || `EVT-${Date.now()}`).trim(),
-    clientId: selectedClient?.id || "",
+    clientId,
     title: String(body.title || "").trim(),
     description:
       typeof body.description === "string" ? body.description.trim() : null,
@@ -88,15 +92,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (
     !input.clientId ||
     !input.title ||
-    !Number.isFinite(input.ticketPrice) ||
+    !Number.isInteger(input.ticketPrice) ||
     input.ticketPrice <= 0 ||
-    !Number.isFinite(input.capacity) ||
+    !Number.isInteger(input.capacity) ||
     input.capacity <= 0 ||
     !validateSubaccountCode(input.paystackSubaccountCode)
   ) {
     res.status(400).json({
       error:
-        "Event title, positive ticket price, capacity, and a configured Paystack payout profile are required",
+        "Event title, selected payout account, positive whole-number ticket price and capacity, and a valid Paystack payout profile are required",
     });
     return;
   }

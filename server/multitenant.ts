@@ -78,11 +78,14 @@ export async function updateEvent(id: string, input: Partial<Omit<InsertEvent, "
   const db = getTicketDb();
   if (!db) throw new Error("Turso database is not configured");
   if (input.ticketPrice !== undefined && (!Number.isFinite(input.ticketPrice) || input.ticketPrice <= 0)) throw new Error("Ticket price must be positive");
-  if (input.capacity !== undefined && (!Number.isFinite(input.capacity) || input.capacity <= 0)) throw new Error("Capacity must be positive");
+  if (input.capacity !== undefined && (!Number.isInteger(input.capacity) || input.capacity <= 0)) throw new Error("Capacity must be a positive whole number");
   if (input.paystackSubaccountCode && !validateSubaccountCode(input.paystackSubaccountCode)) throw new Error("Invalid Paystack subaccount code");
+  const current = await db.select().from(events).where(eq(events.id, id)).limit(1);
+  if (!current[0]) throw new Error("Event not found");
+  if (input.capacity !== undefined && input.capacity < current[0].soldCount)
+    throw new Error(`Capacity cannot be below sold tickets (${current[0].soldCount})`);
   await db.update(events).set(input).where(eq(events.id, id));
   const rows = await db.select().from(events).where(eq(events.id, id)).limit(1);
-  if (!rows[0]) throw new Error("Event not found");
   return rows[0];
 }
 

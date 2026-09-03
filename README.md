@@ -16,3 +16,8 @@ Set these values in Vercel before enabling live operations. Use the Vite names a
 | `TURSO_AUTH_TOKEN` | Turso authentication token |
 | `VITE_PUBLIC_BASE_URL` | Canonical public QR and ticket URL base |
 | `NEXT_PUBLIC_BASE_URL` | Compatibility alias for the public URL base |
+
+
+## Admin upgrade
+
+Events require an explicit payout-account selection. The admin displays projected and paid amounts in KSh, validates whole-number financial inputs, and reports image storage readiness. Images up to 1 MB use a Forge-independent embedded fallback when managed storage keys are unavailable.

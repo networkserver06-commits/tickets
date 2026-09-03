@@ -82,11 +82,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     !input.businessName ||
     !input.email ||
     !input.phone ||
-    !validateSubaccountCode(input.paystackSubaccountCode)
+    !validateSubaccountCode(input.paystackSubaccountCode) ||
+    !Number.isInteger(input.platformFeePercentage) ||
+    input.platformFeePercentage < 0 ||
+    input.platformFeePercentage > 100
   ) {
     res.status(400).json({
       error:
-        "Business name, email, phone, and a valid ACCT_ Paystack subaccount code are required",
+        "Business name, email, phone, valid ACCT_ subaccount code, and a whole-number platform fee from 0 to 100 are required",
     });
     return;
   }

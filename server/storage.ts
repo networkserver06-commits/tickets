@@ -33,11 +33,18 @@ export async function storagePut(
   data: Buffer | Uint8Array | string,
   contentType = "application/octet-stream"
 ): Promise<{ key: string; url: string }> {
-  const { forgeUrl, forgeKey } = getForgeConfig();
   const key = appendHashSuffix(normalizeKey(relKey));
+  const forgeUrl = ENV.forgeApiUrl;
+  const forgeKey = ENV.forgeApiKey;
+  if (!forgeUrl || !forgeKey) {
+    const bytes = Buffer.from(data as any);
+    if (bytes.length > 1024 * 1024) throw new Error("Without managed storage, images are limited to 1 MB");
+    return { key, url: `data:${contentType};base64,${bytes.toString("base64")}` };
+  }
+  const normalizedForgeUrl = forgeUrl.replace(/\/+$/, "");
 
   // 1. Get presigned PUT URL from Forge
-  const presignUrl = new URL("v1/storage/presign/put", forgeUrl + "/");
+  const presignUrl = new URL("v1/storage/presign/put", normalizedForgeUrl + "/");
   presignUrl.searchParams.set("path", key);
 
   const presignResp = await fetch(presignUrl, {

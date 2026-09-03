@@ -201,7 +201,7 @@ function Overview({
         <Metric
           label="Total revenue"
           value={loading ? "—" : money(revenue)}
-          detail="Across all paid orders"
+          detail="Confirmed Paystack order value"
           icon={CircleDollarSign}
           tint="indigo"
         />
@@ -258,7 +258,7 @@ function Overview({
             <div>
               <CardTitle className="text-base">Recent sales</CardTitle>
               <p className="mt-1 text-sm text-slate-500">
-                Revenue movement from successful orders
+                Confirmed paid amount from successful orders
               </p>
             </div>
             <span className="flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
@@ -708,7 +708,7 @@ function SubPage({
         : path === "/transactions"
           ? "Transactions"
           : "Settings";
-  const [paymentStatus, setPaymentStatus] = useState<{ paystackConfigured: boolean; tursoConfigured: boolean; ready: boolean } | null>(null);
+  const [paymentStatus, setPaymentStatus] = useState<{ paystackConfigured: boolean; tursoConfigured: boolean; storageConfigured: boolean; storageMode: string; ready: boolean } | null>(null);
   useEffect(() => {
     if (title !== "Settings") return;
     fetch("/api/management/status", { credentials: "same-origin", cache: "no-store" })
@@ -823,7 +823,7 @@ function SubPage({
                 <div>
                   <h2 className="font-semibold">Payment connection</h2>
                   <p className="mt-1 text-sm leading-6 text-slate-500">
-                    Server-side payment and database configuration is checked securely without exposing secret values.
+                    Payment, database, and image-upload readiness are checked securely without exposing secret values.
                   </p>
                   {paymentStatus ? (
                     <Badge className={`mt-4 ${paymentStatus.ready ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-50" : "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-50"}`}>
@@ -832,6 +832,7 @@ function SubPage({
                   ) : (
                     <Badge className="mt-4 border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-50">Checking configuration…</Badge>
                   )}
+                  {paymentStatus && <p className="mt-3 text-xs text-slate-500">Image uploads: {paymentStatus.storageMode === "managed" ? "managed storage" : "embedded small-image fallback enabled"}.</p>}
                 </div>
               </div>
             </CardContent>
