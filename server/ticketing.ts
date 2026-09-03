@@ -355,6 +355,9 @@ async function processWebhook(
     .trim()
     .slice(0, 320);
   let eventTitle: string | undefined;
+  let eventDate: string | null | undefined;
+  let venue: string | null | undefined;
+  const createdTicketIds: string[] = [];
   await db.transaction(async (tx: any) => {
     let matchingEvent:
       | { id: string; title: string; ticketPrice: number }
@@ -369,11 +372,14 @@ async function processWebhook(
         .from(events)
         .where(eq(events.id, eventId))
         .limit(1);
-      matchingEvent = rows[0];
+          matchingEvent = rows[0];
       if (!matchingEvent) throw new Error("Event not found");
       if (amount !== matchingEvent.ticketPrice * quantity)
         throw new Error("Payment amount does not match event price");
       eventTitle = matchingEvent.title;
+      const eventDetails = await tx.select({ eventDate: events.eventDate, venue: events.venue }).from(events).where(eq(events.id, eventId)).limit(1);
+      eventDate = eventDetails[0]?.eventDate;
+      venue = eventDetails[0]?.venue;
     }
     await tx.insert(orders).values({
       id: reference,
@@ -381,9 +387,11 @@ async function processWebhook(
       totalAmount: amount,
       createdAt: new Date(),
     });
+    const legacyTicketIds = Array.from({ length: quantity }, () => `tkt_${nanoid(16)}`);
+    createdTicketIds.push(...legacyTicketIds);
     await tx.insert(tickets).values(
-      Array.from({ length: quantity }, () => ({
-        id: `tkt_${nanoid(16)}`,
+      legacyTicketIds.map(id => ({
+        id,
         orderId: reference,
         status: "valid" as const,
       }))
@@ -400,9 +408,11 @@ async function processWebhook(
         )
         .returning({ id: events.id });
       if (!reserved.length) throw new Error("Event is sold out");
+      const eventTicketIds = Array.from({ length: quantity }, () => `evt_tkt_${nanoid(16)}`);
+      createdTicketIds.splice(0, createdTicketIds.length, ...eventTicketIds);
       await tx.insert(eventTickets).values(
-        Array.from({ length: quantity }, () => ({
-          id: `evt_tkt_${nanoid(16)}`,
+        eventTicketIds.map(id => ({
+          id,
           eventId,
           buyerName,
           buyerEmail,
@@ -417,8 +427,14 @@ async function processWebhook(
     await sendTicketConfirmation({
       to: buyerEmail,
       buyerName,
+      buyerPhone,
       reference,
       eventTitle,
+      eventDate,
+      venue,
+      quantity,
+      amount,
+      ticketIds: createdTicketIds,
     });
   } catch (error) {
     console.error("[Resend confirmation]", error);
