@@ -44,13 +44,59 @@ async function legacyTicketDetails(db: any, ticketId: string) {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== "POST") {
-    res.status(405).json({ error: "Method not allowed" });
-    return;
-  }
   const expected = process.env.GATE_PIN_CODE || process.env.GATE_CHECKIN_PIN;
   if (!expected || req.headers["x-gate-pin"] !== expected) {
     res.status(401).json({ valid: false, error: "Invalid gate PIN" });
+    return;
+  }
+  if (req.method === "GET") {
+    const ticketId = String(req.query.ticketId || "").trim();
+    const phone = String(req.query.phone || "").trim();
+    const phoneVariants = kenyanPhoneVariants(phone);
+    const db = getTicketDb();
+    if (!db) {
+      res.status(503).json({ valid: false, error: "Database unavailable" });
+      return;
+    }
+    if (!ticketId && !phoneVariants.length) {
+      res.status(400).json({ valid: false, error: "ticketId or phone is required" });
+      return;
+    }
+    const eventQuery = ticketId
+      ? db.select({ id: eventTickets.id, status: eventTickets.status, scannedAt: eventTickets.scannedAt }).from(eventTickets).where(and(eq(eventTickets.id, ticketId), eq(eventTickets.status, "valid"))).limit(1)
+      : db.select({ id: eventTickets.id, status: eventTickets.status, scannedAt: eventTickets.scannedAt }).from(eventTickets).where(and(inArray(eventTickets.buyerPhone, phoneVariants), eq(eventTickets.status, "valid"))).limit(1);
+    let eventTicket = (await eventQuery)[0];
+    if (!eventTicket) {
+      const usedQuery = ticketId
+        ? db.select({ id: eventTickets.id, status: eventTickets.status, scannedAt: eventTickets.scannedAt }).from(eventTickets).where(and(eq(eventTickets.id, ticketId), eq(eventTickets.status, "used"))).limit(1)
+        : db.select({ id: eventTickets.id, status: eventTickets.status, scannedAt: eventTickets.scannedAt }).from(eventTickets).where(and(inArray(eventTickets.buyerPhone, phoneVariants), eq(eventTickets.status, "used"))).orderBy(eventTickets.scannedAt).limit(1);
+      eventTicket = (await usedQuery)[0];
+    }
+    if (eventTicket) {
+      const ticket = await eventTicketDetails(db, eventTicket.id);
+      if (eventTicket.status === "used") {
+        res.status(409).json({ valid: false, status: "used", error: "Ticket has already been used", usedAt: eventTicket.scannedAt, ticketId: eventTicket.id, ticket });
+        return;
+      }
+      res.status(200).json({ valid: true, status: "valid", ticketId: eventTicket.id, ticket });
+      return;
+    }
+    if (ticketId) {
+      const legacy = (await db.select({ status: tickets.status, scannedAt: tickets.scannedAt }).from(tickets).where(eq(tickets.id, ticketId)).limit(1))[0];
+      if (legacy?.status === "used") {
+        res.status(409).json({ valid: false, status: "used", error: "Ticket has already been used", usedAt: legacy.scannedAt, ticketId, ticket: await legacyTicketDetails(db, ticketId) });
+        return;
+      }
+      if (legacy) {
+        res.status(200).json({ valid: true, status: "valid", ticketId, ticket: await legacyTicketDetails(db, ticketId) });
+        return;
+      }
+    }
+    res.status(404).json({ valid: false, error: ticketId ? "Ticket not found" : "No ticket found for that phone number" });
+    return;
+  }
+  if (req.method !== "POST") {
+    res.status(405).json({ error: "Method not allowed" });
     return;
   }
   const body = (req.body || {}) as Record<string, unknown>;

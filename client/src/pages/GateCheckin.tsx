@@ -121,6 +121,32 @@ export default function GateCheckin() {
     finally { setBusy(false); }
   }
 
+  useEffect(() => {
+    if (!pin.trim() || result === "idle" || (!ticketId.trim() && !phone.trim())) return;
+    let active = true;
+    const refresh = async () => {
+      const params = new URLSearchParams(ticketId.trim() ? { ticketId: ticketId.trim() } : { phone: phone.trim() });
+      try {
+        const response = await fetch(`/api/gate/checkin?${params.toString()}`, { headers: { "x-gate-pin": pin.trim() }, cache: "no-store" });
+        const body = await response.json().catch(() => ({}));
+        if (!active) return;
+        if (response.status === 409) {
+          setResult("used");
+          setTicket(body.ticket || (body.usedAt ? { scannedAt: body.usedAt, usedAt: body.usedAt } : null));
+          setMessage(body.error || "Ticket has already been used");
+        } else if (response.ok && result === "used") {
+          setResult("approved");
+          setTicket(body.ticket || null);
+          setMessage("Entry approved");
+        }
+      } catch {
+        // The active result remains visible; the next interval retries automatically.
+      }
+    };
+    const timer = window.setInterval(() => void refresh(), 5000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, [pin, phone, result, ticketId]);
+
   function endShift() {
     sessionStorage.removeItem("passage_gate_pin");
     setPin("");
