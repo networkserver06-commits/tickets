@@ -74,7 +74,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .orderBy(eventTickets.scannedAt)
         .limit(1);
       if (!used[0]) {
-        res.status(409).json({ valid: false, error: "No valid ticket found for that phone number" });
+        res.status(404).json({ valid: false, error: "No valid ticket found for that phone number" });
         return;
       }
       res.status(409).json({
@@ -93,7 +93,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .where(and(eq(eventTickets.id, found[0].id), eq(eventTickets.status, "valid")))
       .returning({ id: eventTickets.id });
     if (!updated.length) {
-      res.status(409).json({ valid: false, error: "Ticket has already been used" });
+      const used = await db
+        .select({ id: eventTickets.id, scannedAt: eventTickets.scannedAt })
+        .from(eventTickets)
+        .where(and(eq(eventTickets.buyerPhone, phone), eq(eventTickets.status, "used")))
+        .orderBy(eventTickets.scannedAt)
+        .limit(1);
+      res.status(409).json({
+        valid: false,
+        status: "used",
+        error: "Ticket has already been used",
+        usedAt: used[0]?.scannedAt,
+        ticketId: used[0]?.id,
+        ticket: used[0] ? await eventTicketDetails(db, used[0].id) : null,
+      });
       return;
     }
     res.status(200).json({ valid: true, ticketId: found[0].id, ticket: await eventTicketDetails(db, found[0].id) });
@@ -136,7 +149,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       res.status(409).json({ valid: false, status: "used", error: "Ticket has already been used", usedAt: legacy[0].scannedAt, ticketId, ticket: await legacyTicketDetails(db, ticketId) });
       return;
     }
-    res.status(409).json({ valid: false, error: "Ticket is missing or already used" });
+    res.status(404).json({ valid: false, error: "Ticket not found" });
     return;
   }
   res.status(200).json({ valid: true, ticketId, ticket: await legacyTicketDetails(db, ticketId) });
