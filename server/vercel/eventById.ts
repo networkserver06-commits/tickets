@@ -30,7 +30,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         ticketPrice: events.ticketPrice,
         capacity: events.capacity,
         soldCount: events.soldCount,
-        paystackSubaccountCode: events.paystackSubaccountCode,
       })
       .from(events)
       .where(eq(events.id, id))

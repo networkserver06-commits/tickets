@@ -200,7 +200,7 @@ export function registerTicketingRoutes(
           });
         const updated = await db
           .update(tickets)
-          .set({ status: "used" })
+          .set({ status: "used", scannedAt: new Date().toISOString() })
           .where(and(eq(tickets.id, ticketId), eq(tickets.status, "valid")))
           .returning({ id: tickets.id });
         if (!updated.length)
@@ -334,6 +334,7 @@ async function processWebhook(
     typeof metadata.eventId === "string" ? metadata.eventId.trim() : "";
   const amount = Number(payload.data.amount || 0);
   if (
+    String(payload.data.currency || "KES").toUpperCase() !== "KES" ||
     !Number.isInteger(quantity) ||
     quantity < 1 ||
     quantity > 8 ||

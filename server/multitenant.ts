@@ -52,6 +52,11 @@ export async function updateClient(
   id: string,
   input: Partial<Omit<InsertClient, "id" | "createdAt">>
 ) {
+  if (input.businessName !== undefined && !input.businessName.trim()) throw new Error("Business name is required");
+  if (input.email !== undefined && !input.email.trim()) throw new Error("Email is required");
+  if (input.phone !== undefined && !input.phone.trim()) throw new Error("Phone is required");
+  if (input.platformFeePercentage !== undefined && (!Number.isInteger(input.platformFeePercentage) || input.platformFeePercentage < 0 || input.platformFeePercentage > 100))
+    throw new Error("Platform fee must be a whole number from 0 to 100");
   if (
     input.paystackSubaccountCode &&
     !validateSubaccountCode(input.paystackSubaccountCode)
@@ -77,7 +82,8 @@ export async function listEvents() {
 export async function updateEvent(id: string, input: Partial<Omit<InsertEvent, "id" | "createdAt">>) {
   const db = getTicketDb();
   if (!db) throw new Error("Turso database is not configured");
-  if (input.ticketPrice !== undefined && (!Number.isFinite(input.ticketPrice) || input.ticketPrice <= 0)) throw new Error("Ticket price must be positive");
+  if (input.title !== undefined && !input.title.trim()) throw new Error("Event title is required");
+  if (input.ticketPrice !== undefined && (!Number.isInteger(input.ticketPrice) || input.ticketPrice <= 0)) throw new Error("Ticket price must be a positive whole number");
   if (input.capacity !== undefined && (!Number.isInteger(input.capacity) || input.capacity <= 0)) throw new Error("Capacity must be a positive whole number");
   if (input.paystackSubaccountCode && !validateSubaccountCode(input.paystackSubaccountCode)) throw new Error("Invalid Paystack subaccount code");
   const current = await db.select().from(events).where(eq(events.id, id)).limit(1);
