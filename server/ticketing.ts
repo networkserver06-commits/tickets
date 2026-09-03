@@ -1,5 +1,5 @@
 import * as crypto from "node:crypto";
-import { and, desc, eq, like, sql } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import express from "express";
 import type {
   Request,
@@ -151,11 +151,11 @@ export function registerTicketingRoutes(
             })
             .from(eventTickets)
             .leftJoin(events, eq(eventTickets.eventId, events.id))
-            .where(like(eventTickets.paystackRef, `${ticketId}%`))
-            .limit(1);
-    const ticket = result[0] || eventResult[0] || referenceResult[0];
+              .where(eq(eventTickets.paystackRef, ticketId));
+    const ticketRows = result[0] ? result : eventResult[0] ? eventResult : referenceResult;
+    const ticket = ticketRows[0];
     if (!ticket) return res.status(404).json({ error: "Ticket not found" });
-    return res.json({ ticket });
+    return res.json({ ticket, tickets: ticketRows });
   });
 
   app.post(
