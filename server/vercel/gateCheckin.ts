@@ -1,7 +1,30 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { and, eq } from "drizzle-orm";
-import { eventTickets, tickets } from "../../drizzle/ticketing-schema.js";
+import { eventTickets, events, orders, tickets } from "../../drizzle/ticketing-schema.js";
 import { getTicketDb } from "../ticketDb.js";
+
+async function eventTicketDetails(db: any, ticketId: string) {
+  const details = await db
+    .select({
+      eventTitle: events.title,
+      eventDate: events.eventDate,
+      venue: events.venue,
+      buyerName: eventTickets.buyerName,
+      buyerEmail: eventTickets.buyerEmail,
+      buyerPhone: eventTickets.buyerPhone,
+      paymentReference: eventTickets.paystackRef,
+    })
+    .from(eventTickets)
+    .leftJoin(events, eq(eventTickets.eventId, events.id))
+    .where(eq(eventTickets.id, ticketId))
+    .limit(1);
+  const payment = await db
+    .select({ amount: orders.totalAmount })
+    .from(orders)
+    .where(eq(orders.id, details[0]?.paymentReference || ""))
+    .limit(1);
+  return details[0] ? { ...details[0], amount: payment[0]?.amount || null } : null;
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
@@ -25,34 +48,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const found = await db
       .select({ id: eventTickets.id })
       .from(eventTickets)
-      .where(
-        and(
-          eq(eventTickets.buyerPhone, phone),
-          eq(eventTickets.status, "valid")
-        )
-      )
+      .where(and(eq(eventTickets.buyerPhone, phone), eq(eventTickets.status, "valid")))
       .limit(1);
     if (!found[0]) {
-      res.status(409).json({
-        valid: false,
-        error: "No valid ticket found for that phone number",
-      });
+      res.status(409).json({ valid: false, error: "No valid ticket found for that phone number" });
       return;
     }
     const updated = await db
       .update(eventTickets)
       .set({ status: "used", scannedAt: new Date().toISOString() })
-      .where(
-        and(eq(eventTickets.id, found[0].id), eq(eventTickets.status, "valid"))
-      )
+      .where(and(eq(eventTickets.id, found[0].id), eq(eventTickets.status, "valid")))
       .returning({ id: eventTickets.id });
     if (!updated.length) {
-      res
-        .status(409)
-        .json({ valid: false, error: "Ticket has already been used" });
+      res.status(409).json({ valid: false, error: "Ticket has already been used" });
       return;
     }
-    res.status(200).json({ valid: true, ticketId: found[0].id });
+    res.status(200).json({ valid: true, ticketId: found[0].id, ticket: await eventTicketDetails(db, found[0].id) });
+    return;
+  }
+  if (!ticketId) {
+    res.status(400).json({ valid: false, error: "ticketId or phone is required" });
     return;
   }
   const eventUpdated = await db
@@ -61,7 +76,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .where(and(eq(eventTickets.id, ticketId), eq(eventTickets.status, "valid")))
     .returning({ id: eventTickets.id });
   if (eventUpdated.length) {
-    res.status(200).json({ valid: true, ticketId });
+    res.status(200).json({ valid: true, ticketId, ticket: await eventTicketDetails(db, ticketId) });
     return;
   }
   const legacyUpdated = await db
@@ -70,10 +85,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .where(and(eq(tickets.id, ticketId), eq(tickets.status, "valid")))
     .returning({ id: tickets.id });
   if (!legacyUpdated.length) {
-    res
-      .status(409)
-      .json({ valid: false, error: "Ticket is missing or already used" });
+    res.status(409).json({ valid: false, error: "Ticket is missing or already used" });
     return;
   }
-  res.status(200).json({ valid: true, ticketId });
+  const payment = await db.select({ amount: orders.totalAmount }).from(orders).where(eq(orders.id, ticketId)).limit(1);
+  res.status(200).json({ valid: true, ticketId, ticket: { paymentReference: ticketId, amount: payment[0]?.amount || null } });
 }
