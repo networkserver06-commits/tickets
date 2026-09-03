@@ -47,6 +47,7 @@ const money = (value: number) =>
   `KSh ${new Intl.NumberFormat("en-KE", { maximumFractionDigits: 0 }).format(value / 100)}`;
 const dateLabel = (value: string | number | Date) =>
   new Date(value).toLocaleDateString("en-US", {
+    timeZone: "Africa/Nairobi",
     month: "short",
     day: "numeric",
   });

@@ -24,7 +24,7 @@ const money = (amount: number, currency: string) => {
   return `${code} ${new Intl.NumberFormat("en-KE", { maximumFractionDigits: 0 }).format(amount / 100)}`;
 };
 
-const dateLabel = (value: string | null) => value ? new Date(value).toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short" }) : "—";
+const dateLabel = (value: string | null) => value ? new Date(value).toLocaleString("en-KE", { timeZone: "Africa/Nairobi", dateStyle: "medium", timeStyle: "short" }) : "—";
 
 function statusStyle(status: string) {
   if (status === "success") return "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-50";
