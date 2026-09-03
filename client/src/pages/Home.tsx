@@ -97,38 +97,31 @@ export default function Home() {
       return;
     }
     let active = true;
-    setLoading(true);
-    fetch(`/api/dashboard/summary?ts=${Date.now()}`, {
-      credentials: "same-origin",
-      cache: "no-store",
-    })
-      .then(async response => {
+    const refresh = async (initial = false) => {
+      if (initial) setLoading(true);
+      try {
+        const response = await fetch(`/api/dashboard/summary?ts=${Date.now()}`, {
+          credentials: "same-origin",
+          cache: "no-store",
+        });
         const data = await response.json().catch(() => ({}));
         if (!response.ok)
-          throw new Error(
-            typeof data.error === "string"
-              ? data.error
-              : "Unable to load dashboard data"
-          );
-        return data;
-      })
-      .then(data => {
+          throw new Error(typeof data.error === "string" ? data.error : "Unable to load dashboard data");
         if (active) {
           setError("");
           setSummary({ ...data, events: Array.isArray(data.events) ? data.events : [] });
         }
-      })
-      .catch(error => {
-        if (active)
-          setError(
-            error instanceof Error
-              ? error.message
-              : "Dashboard data is temporarily unavailable."
-          );
-      })
-      .finally(() => active && setLoading(false));
+      } catch (error) {
+        if (active) setError(error instanceof Error ? error.message : "Dashboard data is temporarily unavailable.");
+      } finally {
+        if (active && initial) setLoading(false);
+      }
+    };
+    void refresh(true);
+    const refreshTimer = window.setInterval(() => void refresh(), 5000);
     return () => {
       active = false;
+      window.clearInterval(refreshTimer);
     };
   }, [isAuthenticated]);
 
