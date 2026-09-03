@@ -696,7 +696,7 @@ function TicketTable({ tickets }: { tickets: TicketRow[] }) {
               <tr>
                 <th className="px-6 py-3 font-semibold">Ticket ID</th>
                 <th className="px-6 py-3 font-semibold">Order</th>
-                <th className="px-6 py-3 font-semibold">Phone</th>
+                <th className="px-6 py-3 font-semibold">Phone number</th>
                 <th className="px-6 py-3 font-semibold">Scan status</th>
                 <th className="px-6 py-3 font-semibold">Verification</th>
               </tr>
