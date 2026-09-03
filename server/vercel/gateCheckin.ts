@@ -1,7 +1,8 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { eventTickets, events, orders, tickets } from "../../drizzle/ticketing-schema.js";
 import { getTicketDb } from "../ticketDb.js";
+import { kenyanPhoneVariants } from "../phone.js";
 
 async function eventTicketDetails(db: any, ticketId: string) {
   const details = await db
@@ -55,6 +56,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const body = (req.body || {}) as Record<string, unknown>;
   const ticketId = String(body.ticketId || "").trim();
   const phone = String(body.phone || "").trim();
+  const phoneVariants = kenyanPhoneVariants(phone);
   const db = getTicketDb();
   if (!db) {
     res.status(503).json({ valid: false, error: "Database unavailable" });
@@ -64,13 +66,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const found = await db
       .select({ id: eventTickets.id, status: eventTickets.status, scannedAt: eventTickets.scannedAt })
       .from(eventTickets)
-      .where(and(eq(eventTickets.buyerPhone, phone), eq(eventTickets.status, "valid")))
+      .where(and(inArray(eventTickets.buyerPhone, phoneVariants), eq(eventTickets.status, "valid")))
       .limit(1);
     if (!found[0]) {
       const used = await db
         .select({ id: eventTickets.id, scannedAt: eventTickets.scannedAt })
         .from(eventTickets)
-        .where(and(eq(eventTickets.buyerPhone, phone), eq(eventTickets.status, "used")))
+        .where(and(inArray(eventTickets.buyerPhone, phoneVariants), eq(eventTickets.status, "used")))
         .orderBy(eventTickets.scannedAt)
         .limit(1);
       if (!used[0]) {
@@ -96,7 +98,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const used = await db
         .select({ id: eventTickets.id, scannedAt: eventTickets.scannedAt })
         .from(eventTickets)
-        .where(and(eq(eventTickets.buyerPhone, phone), eq(eventTickets.status, "used")))
+        .where(and(inArray(eventTickets.buyerPhone, phoneVariants), eq(eventTickets.status, "used")))
         .orderBy(eventTickets.scannedAt)
         .limit(1);
       res.status(409).json({

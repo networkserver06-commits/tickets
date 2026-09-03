@@ -16,6 +16,7 @@ import {
   tickets,
 } from "../drizzle/ticketing-schema.js";
 import { getTicketDb } from "./ticketDb.js";
+import { normalizeKenyanPhone } from "./phone.js";
 import { sdk } from "./_core/sdk.js";
 import { sendTicketConfirmation } from "./resend.js";
 
@@ -347,9 +348,7 @@ async function processWebhook(
   )
     .trim()
     .slice(0, 200);
-  const buyerPhone = String(metadata.phone || "")
-    .trim()
-    .slice(0, 40);
+  const buyerPhone = normalizeKenyanPhone(metadata.phone);
   const buyerEmail = String(
     payload.data.customer?.email || "unknown@example.com"
   )
