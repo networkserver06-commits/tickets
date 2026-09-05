@@ -1,8 +1,45 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import * as crypto from "node:crypto";
 import { and, eq, inArray } from "drizzle-orm";
 import { eventTickets, events, orders, tickets } from "../../drizzle/ticketing-schema.js";
 import { getTicketDb } from "../ticketDb.js";
 import { kenyanPhoneVariants } from "../phone.js";
+
+const failedAttempts = new Map<string, { count: number; resetAt: number }>();
+const MAX_FAILED_ATTEMPTS = 5;
+const FAILURE_WINDOW_MS = 10 * 60 * 1000;
+
+function headerValue(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] || "" : value || "";
+}
+
+function sameSecret(left: string, right: string) {
+  const leftBuffer = Buffer.from(left, "utf8");
+  const rightBuffer = Buffer.from(right, "utf8");
+  return leftBuffer.length === rightBuffer.length && crypto.timingSafeEqual(leftBuffer, rightBuffer);
+}
+
+function clientKey(req: VercelRequest) {
+  return headerValue(req.headers["x-forwarded-for"]).split(",")[0]?.trim() || "unknown";
+}
+
+function isRateLimited(key: string, now = Date.now()) {
+  const state = failedAttempts.get(key);
+  if (!state || state.resetAt <= now) {
+    failedAttempts.delete(key);
+    return false;
+  }
+  return state.count >= MAX_FAILED_ATTEMPTS;
+}
+
+function recordFailure(key: string, now = Date.now()) {
+  const state = failedAttempts.get(key);
+  if (!state || state.resetAt <= now) {
+    failedAttempts.set(key, { count: 1, resetAt: now + FAILURE_WINDOW_MS });
+    return;
+  }
+  state.count += 1;
+}
 
 async function eventTicketDetails(db: any, ticketId: string) {
   const details = await db
@@ -44,11 +81,20 @@ async function legacyTicketDetails(db: any, ticketId: string) {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  res.setHeader("Cache-Control", "no-store, max-age=0");
   const expected = process.env.GATE_PIN_CODE || process.env.GATE_CHECKIN_PIN;
-  if (!expected || req.headers["x-gate-pin"] !== expected) {
+  const key = clientKey(req);
+  if (isRateLimited(key)) {
+    res.status(429).json({ valid: false, error: "Too many invalid gate PIN attempts" });
+    return;
+  }
+  const provided = headerValue(req.headers["x-gate-pin"]);
+  if (!expected || !sameSecret(provided, expected)) {
+    recordFailure(key);
     res.status(401).json({ valid: false, error: "Invalid gate PIN" });
     return;
   }
+  failedAttempts.delete(key);
   if (req.method === "GET") {
     const ticketId = String(req.query.ticketId || "").trim();
     const phone = String(req.query.phone || "").trim();

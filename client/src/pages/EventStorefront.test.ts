@@ -1,10 +1,20 @@
 import { describe, expect, it } from "vitest";
-import { formatKes, isValidKenyanPhone, normalizeKenyanPhone } from "./EventStorefront";
+import { createPaymentReference, formatKes, isValidKenyanPhone, normalizeKenyanPhone } from "./EventStorefront";
 
 describe("formatKes", () => {
   it("formats Paystack cents as Kenyan Shillings", () => {
     expect(formatKes(250000)).toContain("KSh");
     expect(formatKes(250000)).toContain("2,500");
+  });
+});
+
+describe("payment references", () => {
+  it("creates unique Passage references", () => {
+    const first = createPaymentReference();
+    const second = createPaymentReference();
+    expect(first).toMatch(/^passage-/);
+    expect(second).toMatch(/^passage-/);
+    expect(first).not.toBe(second);
   });
 });
 

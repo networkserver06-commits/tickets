@@ -16,6 +16,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       path === "/api/dashboard/summary" ||
       path.startsWith("/api/dashboard/") ||
       path === "/api/paystack/transactions" ||
+      path === "/api/payments/initialize" ||
+      path === "/api/payments/mpesa" ||
+      path === "/api/payments/status" ||
       path === "/api/tickets/verify" ||
       path.startsWith("/api/tickets/") ||
       path === "/api/gate/checkin" ||
@@ -39,6 +42,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       path === "/api/dashboard/summary" ||
       path.startsWith("/api/dashboard/") ||
       path === "/api/paystack/transactions" ||
+      path === "/api/payments/initialize" ||
+      path === "/api/payments/mpesa" ||
+      path === "/api/payments/status" ||
       path === "/api/tickets/verify" ||
       path.startsWith("/api/tickets/")
     ) {

@@ -127,6 +127,54 @@ describe("ticketing REST routes", () => {
     });
   });
 
+  it("initializes a server-side card checkout from the live event price", async () => {
+    process.env.PAYSTACK_SECRET_KEY = "test-secret";
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ status: true, data: { authorization_url: "https://checkout.paystack.com/test", access_code: "access", status: "initialized" } }), { status: 200, headers: { "content-type": "application/json" } })));
+    const db = {
+      select: () => ({
+        from: () => ({
+          where: () => ({
+            limit: async () => [{ id: "EVT-1", title: "Test Event", ticketPrice: 250000, capacity: 100, soldCount: 2, paystackSubaccountCode: "ACCT_test" }],
+          }),
+        }),
+      }),
+    };
+    const routes = harness(db);
+    const res = response();
+    await routes.get("POST /api/payments/initialize")!({ body: { eventId: "EVT-1", quantity: 2, name: "Buyer", email: "buyer@example.com", phone: "0723000000" }, protocol: "https", header: (name: string) => name === "x-forwarded-proto" ? "https" : undefined, get: (name: string) => name === "host" ? "tickets.example.com" : undefined }, res);
+    expect(res.result.status).toBe(200);
+    expect((res.result.body as any).authorizationUrl).toBe("https://checkout.paystack.com/test");
+    const request = (fetch as any).mock.calls[0][1];
+    const payload = JSON.parse(request.body);
+    expect(payload.amount).toBe("500000");
+    expect(payload.currency).toBe("KES");
+    expect(payload.subaccount).toBe("ACCT_test");
+    expect(payload.metadata.eventId).toBe("EVT-1");
+  });
+
+  it("starts a Kenya M-Pesa charge with the normalized phone number", async () => {
+    process.env.PAYSTACK_SECRET_KEY = "test-secret";
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ status: true, data: { reference: "passage-server-reference", status: "pending", display_text: "Approve the prompt" } }), { status: 200, headers: { "content-type": "application/json" } })));
+    const db = {
+      select: () => ({
+        from: () => ({
+          where: () => ({
+            limit: async () => [{ id: "EVT-1", title: "Test Event", ticketPrice: 250000, capacity: 100, soldCount: 2, paystackSubaccountCode: "ACCT_test" }],
+          }),
+        }),
+      }),
+    };
+    const routes = harness(db);
+    const res = response();
+    await routes.get("POST /api/payments/mpesa")!({ body: { eventId: "EVT-1", quantity: 1, name: "Buyer", email: "buyer@example.com", phone: "0723 000 000" }, protocol: "https", header: () => "https", get: () => "tickets.example.com" }, res);
+    expect(res.result.status).toBe(200);
+    expect((res.result.body as any).channel).toBe("mobile_money");
+    const request = (fetch as any).mock.calls[0][1];
+    const payload = JSON.parse(request.body);
+    expect(payload.mobile_money).toEqual({ phone: "+254723000000", provider: "mpesa" });
+    expect(payload.currency).toBe("KES");
+  });
+
   it("returns not found for a ticket that does not exist", async () => {
     const db = {
       select: () => ({

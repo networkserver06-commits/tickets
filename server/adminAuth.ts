@@ -22,11 +22,12 @@ type AdminConfig = {
 function getAdminConfig(): AdminConfig | null {
   const username = process.env.ADMIN_USERNAME?.trim();
   const password = process.env.ADMIN_PASSWORD;
-  if (!username || !password) return null;
+  const sessionSecret = process.env.ADMIN_SESSION_SECRET?.trim();
+  if (!username || !password || !sessionSecret) return null;
   return {
     username,
     password,
-    sessionSecret: process.env.ADMIN_SESSION_SECRET || password,
+    sessionSecret,
   };
 }
 

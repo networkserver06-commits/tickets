@@ -73,11 +73,168 @@ export function signatureMatches(
   );
 }
 
+type PaymentInput = {
+  eventId: string;
+  quantity: number;
+  name: string;
+  email: string;
+  phone: string;
+};
+
+function paymentReference() {
+  return `passage-${nanoid(24)}`;
+}
+
+function requestBaseUrl(req: Request) {
+  const configured = process.env.VITE_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_BASE_URL;
+  if (configured?.trim()) return configured.trim().replace(/\/$/, "");
+  const forwardedProto = req.header("x-forwarded-proto")?.split(",")[0]?.trim();
+  return `${forwardedProto || req.protocol}://${req.get("host") || "localhost"}`;
+}
+
+async function preparePayment(req: Request, dbFactory: () => any): Promise<{
+  input: PaymentInput;
+  reference: string;
+  amount: number;
+  event: { id: string; title: string; ticketPrice: number; capacity: number; soldCount: number; paystackSubaccountCode: string };
+  metadata: Record<string, unknown>;
+}> {
+  const body = (req.body || {}) as Record<string, unknown>;
+  const eventId = String(body.eventId || "").trim();
+  const quantity = Number(body.quantity);
+  const name = String(body.name || "").trim().slice(0, 200);
+  const email = String(body.email || "").trim().slice(0, 320);
+  const phone = normalizeKenyanPhone(String(body.phone || "").trim());
+  if (!eventId || !Number.isInteger(quantity) || quantity < 1 || quantity > 8 || !name || !/^\S+@\S+\.\S+$/.test(email) || !/^254(?:1|7)\d{8}$/.test(phone)) {
+    throw new Error("Event, quantity, name, email, and a valid Kenyan phone number are required");
+  }
+  const db = dbFactory();
+  if (!db) throw new Error("Database unavailable");
+  const rows = await db.select({
+    id: events.id,
+    title: events.title,
+    ticketPrice: events.ticketPrice,
+    capacity: events.capacity,
+    soldCount: events.soldCount,
+    paystackSubaccountCode: events.paystackSubaccountCode,
+  }).from(events).where(eq(events.id, eventId)).limit(1);
+  const event = rows[0];
+  if (!event) throw new Error("Event not found");
+  if (event.soldCount + quantity > event.capacity) throw new Error("The selected quantity is no longer available");
+  const reference = paymentReference();
+  const amount = event.ticketPrice * quantity;
+  return {
+    input: { eventId, quantity, name, email, phone },
+    reference,
+    amount,
+    event,
+    metadata: {
+      eventId,
+      eventTitle: event.title,
+      quantity: String(quantity),
+      full_name: name,
+      phone,
+      verificationBaseUrl: requestBaseUrl(req),
+      custom_fields: [
+        { display_name: "Full name", variable_name: "full_name", value: name },
+        { display_name: "Phone", variable_name: "phone", value: phone },
+        { display_name: "Quantity", variable_name: "quantity", value: String(quantity) },
+        { display_name: "Event", variable_name: "event_id", value: eventId },
+      ],
+    },
+  };
+}
+
+async function paystackJson(path: string, init: RequestInit) {
+  const secret = getPaystackSecret();
+  if (!secret) throw new Error("Paystack secret key is not configured");
+  const response = await fetch(`https://api.paystack.co${path}`, {
+    ...init,
+    headers: {
+      Authorization: `Bearer ${secret}`,
+      "Content-Type": "application/json",
+      ...(init.headers || {}),
+    },
+  });
+  const payload = (await response.json().catch(() => null)) as any;
+  if (!response.ok || payload?.status === false) {
+    throw new Error(payload?.message || "Paystack request failed");
+  }
+  return payload;
+}
+
 export function registerTicketingRoutes(
   app: ExpressApp,
   dbFactory: () => any = getTicketDb,
   adminMiddleware: RequestHandler = (_req, _res, next) => next()
 ) {
+  app.post("/api/payments/initialize", async (req: Request, res: Response) => {
+    try {
+      const secret = getPaystackSecret();
+      if (!secret) return res.status(503).json({ error: "Paystack secret key is not configured" });
+      const payment = await preparePayment(req, dbFactory);
+      const payload = await paystackJson("/transaction/initialize", {
+        method: "POST",
+        body: JSON.stringify({
+          email: payment.input.email,
+          amount: String(payment.amount),
+          currency: "KES",
+          reference: payment.reference,
+          callback_url: `${requestBaseUrl(req)}/ticket/${encodeURIComponent(payment.reference)}`,
+          subaccount: payment.event.paystackSubaccountCode || undefined,
+          metadata: payment.metadata,
+        }),
+      });
+      return res.status(200).json({
+        reference: payment.reference,
+        authorizationUrl: payload.data?.authorization_url,
+        accessCode: payload.data?.access_code,
+        status: payload.data?.status || "initialized",
+      });
+    } catch (error) {
+      return res.status(400).json({ error: error instanceof Error ? error.message : "Unable to initialize card payment" });
+    }
+  });
+
+  app.post("/api/payments/mpesa", async (req: Request, res: Response) => {
+    try {
+      const secret = getPaystackSecret();
+      if (!secret) return res.status(503).json({ error: "Paystack secret key is not configured" });
+      const payment = await preparePayment(req, dbFactory);
+      const payload = await paystackJson("/charge", {
+        method: "POST",
+        body: JSON.stringify({
+          email: payment.input.email,
+          amount: String(payment.amount),
+          currency: "KES",
+          reference: payment.reference,
+          subaccount: payment.event.paystackSubaccountCode || undefined,
+          metadata: payment.metadata,
+          mobile_money: { phone: `+${payment.input.phone}`, provider: "mpesa" },
+        }),
+      });
+      return res.status(200).json({
+        reference: payment.reference,
+        status: payload.data?.status || "pending",
+        displayText: payload.data?.display_text || "Approve the M-Pesa prompt on your phone.",
+        channel: "mobile_money",
+      });
+    } catch (error) {
+      return res.status(400).json({ error: error instanceof Error ? error.message : "Unable to start M-Pesa payment" });
+    }
+  });
+
+  app.get("/api/payments/status", async (req: Request, res: Response) => {
+    const reference = String(req.query.reference || "").trim();
+    if (!/^passage-[A-Za-z0-9-]+$/.test(reference)) return res.status(400).json({ error: "Valid payment reference is required" });
+    try {
+      const payload = await paystackJson(`/transaction/verify/${encodeURIComponent(reference)}`, { method: "GET" });
+      return res.status(200).json({ reference, status: payload.data?.status || "unknown", paid: payload.data?.status === "success" });
+    } catch (error) {
+      return res.status(502).json({ error: error instanceof Error ? error.message : "Unable to check payment status" });
+    }
+  });
+
   app.post("/api/webhook/paystack", (req: Request, res: Response) => {
     const rawBody = Buffer.isBuffer(req.body)
       ? req.body.toString("utf8")
@@ -153,22 +310,18 @@ export function registerTicketingRoutes(
             .leftJoin(events, eq(eventTickets.eventId, events.id))
               .where(eq(eventTickets.paystackRef, ticketId));
     let ticketRows = result[0] ? result : eventResult[0] ? eventResult : referenceResult;
-    if (!ticketRows.length && getPaystackSecret() && ticketId.startsWith("passage-")) {
-      try {
-        const verification = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(ticketId)}`, { headers: { Authorization: `Bearer ${getPaystackSecret()}` } });
-        const verified = await verification.json().catch(() => null);
-        if (verification.ok && verified?.data?.status === "success") {
-          await processWebhook({ event: "charge.success", data: verified.data }, dbFactory);
-          const recovered = await db.select({ id: eventTickets.id, status: eventTickets.status, buyerName: eventTickets.buyerName, buyerEmail: eventTickets.buyerEmail, buyerPhone: eventTickets.buyerPhone, paystackRef: eventTickets.paystackRef, eventId: events.id, eventTitle: events.title, eventDate: events.eventDate, venue: events.venue }).from(eventTickets).leftJoin(events, eq(eventTickets.eventId, events.id)).where(eq(eventTickets.paystackRef, ticketId));
-          if (recovered.length) ticketRows = recovered;
-        }
-      } catch (error) {
-        console.error("[Ticket recovery] Paystack verification failed", error);
-      }
-    }
     const ticket = ticketRows[0];
     if (!ticket) return res.status(404).json({ error: "Ticket not found" });
-    return res.json({ ticket, tickets: ticketRows });
+    const publicTickets = (ticketRows as Array<Record<string, unknown>>).map(row => ({
+      id: row.id,
+      status: row.status,
+      buyerName: "buyerName" in row ? row.buyerName : undefined,
+      eventId: "eventId" in row ? row.eventId : undefined,
+      eventTitle: "eventTitle" in row ? row.eventTitle : undefined,
+      eventDate: "eventDate" in row ? row.eventDate : undefined,
+      venue: "venue" in row ? row.venue : undefined,
+    }));
+    return res.json({ ticket: publicTickets[0], tickets: publicTickets });
   });
 
   app.post(
@@ -454,15 +607,17 @@ async function processWebhook(
       totalAmount: amount,
       createdAt: new Date(),
     });
-    const legacyTicketIds = Array.from({ length: quantity }, () => `tkt_${nanoid(16)}`);
-    createdTicketIds.push(...legacyTicketIds);
-    await tx.insert(tickets).values(
-      legacyTicketIds.map(id => ({
-        id,
-        orderId: reference,
-        status: "valid" as const,
-      }))
-    );
+    if (!matchingEvent) {
+      const legacyTicketIds = Array.from({ length: quantity }, () => `tkt_${nanoid(16)}`);
+      createdTicketIds.push(...legacyTicketIds);
+      await tx.insert(tickets).values(
+        legacyTicketIds.map(id => ({
+          id,
+          orderId: reference,
+          status: "valid" as const,
+        }))
+      );
+    }
     if (matchingEvent) {
       const reserved = await tx
         .update(events)
