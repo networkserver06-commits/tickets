@@ -6,6 +6,10 @@ Set these values in Vercel before enabling live operations. Use the Vite names a
 | Variable | Purpose |
 | --- | --- |
 | `PAYSTACK_SECRET_KEY` | Server-side Paystack API and webhook verification |
+| `COURTNEY_API_KEY` | Server-side CourtesyTech API key |
+| `COURTNEY_API_SECRET` | Server-side CourtesyTech API secret |
+| `COURTNEY_BASE_URL` | CourtesyTech API base URL; use `https://courtneytech.xyz/api` |
+| `COURTNEY_ACCOUNT_ID` | CourtesyTech payment account ID, such as `60` |
 | `ADMIN_USERNAME` | Admin login username |
 | `ADMIN_PASSWORD` | Admin login password |
 | `ADMIN_SESSION_SECRET` | Independent secret used to sign admin session cookies |
@@ -23,9 +27,9 @@ Set these values in Vercel before enabling live operations. Use the Vite names a
 
 ## Payment methods
 
-The storefront now supports two KES payment paths through Paystack. Card payments use the server-side transaction initialization endpoint at `/api/payments/initialize`, which redirects the customer to Paystack Checkout. Kenya M-Pesa payments use `/api/payments/mpesa` with the Paystack Charge API and the `mobile_money` provider `mpesa`; the storefront checks `/api/payments/status` while waiting for the customer to approve the phone prompt. Successful payments are finalized only by the signed `/api/webhook/paystack` webhook, which issues the event tickets idempotently.
+The storefront always offers **Pay with Card** through Paystack. M-Pesa checkout is routed through the provider selected in the authenticated admin dashboard: Paystack Mobile Money or CourtesyTech STK Push. CourtesyTech uses `/v2/stkpush` and `/v2/status`; the production callbacks use `https://tickets.leetec.online/api/webhook/courtesytech`. The storefront checks `/api/payments/status` while waiting for the customer to approve the phone prompt. Successful payments are finalized through the verified provider result and issue event tickets idempotently.
 
-Configure the Paystack webhook URL as `https://YOUR_DOMAIN/api/webhook/paystack` in the Paystack dashboard. The Paystack account must have the relevant Kenya card and Mobile Money channels enabled, and the server must use the secret key while the browser never handles card details.
+Configure the Paystack webhook URL as `https://tickets.leetec.online/api/webhook/paystack` in the Paystack dashboard. CourtesyTech credentials must remain server-side in Vercel; the browser never receives either provider secret. The admin payment switch changes only the M-Pesa route—card checkout remains Paystack.
 
 ## Admin upgrade
 

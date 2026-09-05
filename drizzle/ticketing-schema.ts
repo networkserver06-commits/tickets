@@ -40,6 +40,27 @@ export const events = sqliteTable("events", {
   createdAt: text("created_at").notNull().default("CURRENT_TIMESTAMP"),
 });
 
+export const appSettings = sqliteTable("app_settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+  updatedAt: text("updated_at").notNull().default("CURRENT_TIMESTAMP"),
+});
+
+export const paymentAttempts = sqliteTable("payment_attempts", {
+  reference: text("reference").primaryKey(),
+  provider: text("provider", { enum: ["courtesytech"] }).notNull(),
+  eventId: text("event_id").notNull().references(() => events.id),
+  buyerName: text("buyer_name").notNull(),
+  buyerEmail: text("buyer_email").notNull(),
+  buyerPhone: text("buyer_phone").notNull(),
+  quantity: integer("quantity").notNull(),
+  amount: integer("amount").notNull(),
+  externalId: text("external_id").notNull(),
+  status: text("status").notNull().default("pending"),
+  receipt: text("receipt"),
+  createdAt: text("created_at").notNull().default("CURRENT_TIMESTAMP"),
+});
+
 export const eventTickets = sqliteTable("event_tickets", {
   id: text("id").primaryKey(),
   eventId: text("event_id").notNull().references(() => events.id),
@@ -66,3 +87,4 @@ export type EventTicket = typeof eventTickets.$inferSelect;
 export type InsertClient = typeof clients.$inferInsert;
 export type InsertEvent = typeof events.$inferInsert;
 export type InsertEventTicket = typeof eventTickets.$inferInsert;
+export type PaymentAttempt = typeof paymentAttempts.$inferSelect;

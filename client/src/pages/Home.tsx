@@ -828,7 +828,10 @@ function SubPage({
         : path === "/transactions"
           ? "Transactions"
           : "Settings";
-  const [paymentStatus, setPaymentStatus] = useState<{ paystackConfigured: boolean; tursoConfigured: boolean; storageConfigured: boolean; storageMode: string; ready: boolean } | null>(null);
+  const [paymentStatus, setPaymentStatus] = useState<{ paystackConfigured: boolean; courtesytechConfigured: boolean; mpesaProvider: "paystack" | "courtesytech"; tursoConfigured: boolean; storageConfigured: boolean; storageMode: string; ready: boolean } | null>(null);
+  const [mpesaProvider, setMpesaProvider] = useState<"paystack" | "courtesytech">("paystack");
+  const [savingMpesaProvider, setSavingMpesaProvider] = useState(false);
+  const [providerMessage, setProviderMessage] = useState("");
   useEffect(() => {
     if (title !== "Settings") return;
     fetch("/api/management/status", { credentials: "same-origin", cache: "no-store" })
@@ -839,6 +842,32 @@ function SubPage({
       })
       .catch(() => setPaymentStatus(null));
   }, [title]);
+  useEffect(() => {
+    if (title !== "Settings") return;
+    fetch("/api/management/payment-settings", { credentials: "same-origin", cache: "no-store" })
+      .then(response => response.json().then(body => ({ response, body })))
+      .then(({ response, body }) => {
+        if (!response.ok) throw new Error(body.error || "Unable to read payment settings");
+        setMpesaProvider(body.mpesaProvider === "courtesytech" ? "courtesytech" : "paystack");
+      })
+      .catch(() => undefined);
+  }, [title]);
+  async function updateMpesaProvider(provider: "paystack" | "courtesytech") {
+    if (savingMpesaProvider || provider === mpesaProvider) return;
+    setSavingMpesaProvider(true);
+    setProviderMessage("");
+    try {
+      const response = await fetch("/api/management/payment-settings", { method: "PUT", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mpesaProvider: provider }) });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(body.error || "Unable to update payment settings");
+      setMpesaProvider(provider);
+      setPaymentStatus(current => current ? { ...current, mpesaProvider: provider } : current);
+    } catch (error) {
+      setProviderMessage(error instanceof Error ? error.message : "Unable to update payment settings");
+    } finally {
+      setSavingMpesaProvider(false);
+    }
+  }
   return (
     <div className="space-y-8">
       <div>
@@ -955,6 +984,9 @@ function SubPage({
                     <Badge className="mt-4 border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-50">Checking configuration…</Badge>
                   )}
                   {paymentStatus && <p className="mt-3 text-xs text-slate-500">Image uploads: {paymentStatus.storageMode === "managed" ? "managed storage" : "embedded small-image fallback enabled"}.</p>}
+                  <div className="mt-5 rounded-xl border border-slate-200 p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-sm font-semibold text-slate-800">M-Pesa provider</p><p className="mt-1 text-xs text-slate-500">Cards always use Paystack. This switch controls only M-Pesa checkout.</p></div><div className="grid grid-cols-2 gap-1 rounded-lg bg-slate-100 p-1"><button type="button" disabled={savingMpesaProvider} onClick={() => void updateMpesaProvider("paystack")} className={`rounded-md px-3 py-2 text-xs font-semibold ${mpesaProvider === "paystack" ? "bg-white text-indigo-700 shadow-sm" : "text-slate-500"}`}>Paystack</button><button type="button" disabled={savingMpesaProvider} onClick={() => void updateMpesaProvider("courtesytech")} className={`rounded-md px-3 py-2 text-xs font-semibold ${mpesaProvider === "courtesytech" ? "bg-white text-emerald-700 shadow-sm" : "text-slate-500"}`}>CourtesyTech</button></div></div>                    {providerMessage && <p className="mt-3 text-xs text-rose-600">{providerMessage}</p>}<p className="mt-3 text-xs text-slate-500">Current M-Pesa route: <strong>{mpesaProvider === "courtesytech" ? "CourtesyTech STK Push" : "Paystack Mobile Money"}</strong>{mpesaProvider === "courtesytech" && paymentStatus && !paymentStatus.courtesytechConfigured ? " · CourtesyTech credentials are missing" : ""}</p>
+                  </div>
                 </div>
               </div>
             </CardContent>

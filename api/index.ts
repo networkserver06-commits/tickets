@@ -13,9 +13,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const databaseRoute =
       path.startsWith("/api/trpc/") ||
       path === "/api/webhook/paystack" ||
+      path === "/api/webhook/courtesytech" ||
+      path === "/api/webhook/courtesytech/success" ||
+      path === "/api/webhook/courtesytech/confirmation" ||
       path === "/api/dashboard/summary" ||
       path.startsWith("/api/dashboard/") ||
       path === "/api/paystack/transactions" ||
+      path === "/api/payments/config" ||
       path === "/api/payments/initialize" ||
       path === "/api/payments/mpesa" ||
       path === "/api/payments/status" ||
@@ -23,6 +27,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       path.startsWith("/api/tickets/") ||
       path === "/api/gate/checkin" ||
       path.startsWith("/api/management/") ||
+      path === "/api/management/payment-settings" ||
       /^\/api\/events\/[^/]+$/.test(path);
     if (databaseRoute && !(await ensureTicketSchema())) {
       res.status(503).json({ error: "Database schema unavailable" });
@@ -39,9 +44,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     if (
       path === "/api/webhook/paystack" ||
+      path === "/api/webhook/courtesytech" ||
+      path === "/api/webhook/courtesytech/success" ||
+      path === "/api/webhook/courtesytech/confirmation" ||
       path === "/api/dashboard/summary" ||
       path.startsWith("/api/dashboard/") ||
       path === "/api/paystack/transactions" ||
+      path === "/api/payments/config" ||
       path === "/api/payments/initialize" ||
       path === "/api/payments/mpesa" ||
       path === "/api/payments/status" ||
@@ -75,6 +84,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     if (path === "/api/management/event-image") {
       const { default: route } = await import("../server/vercel/managementEventImage.js");
+      return route(req, res);
+    }
+    if (path === "/api/management/payment-settings") {
+      const { default: route } = await import("../server/vercel/managementPaymentSettings.js");
       return route(req, res);
     }
     if (path === "/api/management/status") {

@@ -14,10 +14,12 @@ import {
   eventTickets,
   orders,
   tickets,
+  paymentAttempts,
 } from "../drizzle/ticketing-schema.js";
 import { getTicketDb } from "./ticketDb.js";
 import { normalizeKenyanPhone } from "./phone.js";
 import { sendTicketConfirmation } from "./resend.js";
+import { getMpesaProvider } from "./paymentSettings.js";
 
 const getPaystackSecret = () => process.env.PAYSTACK_SECRET_KEY;
 
@@ -89,7 +91,7 @@ function requestBaseUrl(req: Request) {
   const configured = process.env.VITE_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_BASE_URL;
   if (configured?.trim()) return configured.trim().replace(/\/$/, "");
   const forwardedProto = req.header("x-forwarded-proto")?.split(",")[0]?.trim();
-  return `${forwardedProto || req.protocol}://${req.get("host") || "localhost"}`;
+  return `${forwardedProto || req.protocol}://${req.get("host") || "tickets.leetec.online"}`;
 }
 
 async function preparePayment(req: Request, dbFactory: () => any): Promise<{
@@ -145,6 +147,32 @@ async function preparePayment(req: Request, dbFactory: () => any): Promise<{
   };
 }
 
+function getCourtesyConfig() {
+  const baseUrl = (process.env.COURTNEY_BASE_URL || "https://courtneytech.xyz/api").trim().replace(/\/$/, "");
+  const apiKey = process.env.COURTNEY_API_KEY?.trim();
+  const apiSecret = process.env.COURTNEY_API_SECRET?.trim();
+  const accountId = Number(process.env.COURTNEY_ACCOUNT_ID);
+  if (!apiKey || !apiSecret || !baseUrl || !Number.isInteger(accountId) || accountId <= 0) return null;
+  return { baseUrl, apiKey, apiSecret, accountId };
+}
+
+async function courtesyJson(path: string, init: RequestInit) {
+  const config = getCourtesyConfig();
+  if (!config) throw new Error("CourtesyTech is not configured");
+  const response = await fetch(`${config.baseUrl}${path}`, {
+    ...init,
+    headers: {
+      "X-API-Key": config.apiKey,
+      "X-API-Secret": config.apiSecret,
+      "Content-Type": "application/json",
+      ...(init.headers || {}),
+    },
+  });
+  const payload = (await response.json().catch(() => null)) as any;
+  if (!response.ok || payload?.status === false || payload?.error) throw new Error(payload?.message || payload?.error || "CourtesyTech request failed");
+  return payload;
+}
+
 async function paystackJson(path: string, init: RequestInit) {
   const secret = getPaystackSecret();
   if (!secret) throw new Error("Paystack secret key is not configured");
@@ -163,11 +191,42 @@ async function paystackJson(path: string, init: RequestInit) {
   return payload;
 }
 
+async function finalizeCourtesyPayment(attempt: any, receipt: string | null, dbFactory: () => any) {
+  const payload = {
+    event: "charge.success",
+    data: {
+      reference: attempt.reference,
+      status: "success",
+      amount: attempt.amount,
+      currency: "KES",
+      metadata: {
+        eventId: attempt.eventId,
+        quantity: String(attempt.quantity),
+        full_name: attempt.buyerName,
+        phone: attempt.buyerPhone,
+      },
+      customer: { email: attempt.buyerEmail },
+      channel: "mobile_money",
+      mpesaReceipt: receipt,
+    },
+  };
+  await processWebhook(payload, dbFactory);
+}
+
 export function registerTicketingRoutes(
   app: ExpressApp,
   dbFactory: () => any = getTicketDb,
   adminMiddleware: RequestHandler = (_req, _res, next) => next()
 ) {
+  app.get("/api/payments/config", async (_req: Request, res: Response) => {
+    try {
+      const provider = await getMpesaProvider(dbFactory());
+      return res.status(200).json({ cardProvider: "paystack", mpesaProvider: provider });
+    } catch (error) {
+      return res.status(503).json({ error: error instanceof Error ? error.message : "Unable to read payment configuration" });
+    }
+  });
+
   app.post("/api/payments/initialize", async (req: Request, res: Response) => {
     try {
       const secret = getPaystackSecret();
@@ -198,27 +257,45 @@ export function registerTicketingRoutes(
 
   app.post("/api/payments/mpesa", async (req: Request, res: Response) => {
     try {
-      const secret = getPaystackSecret();
-      if (!secret) return res.status(503).json({ error: "Paystack secret key is not configured" });
+      const db = dbFactory();
+      const provider = await getMpesaProvider(db);
       const payment = await preparePayment(req, dbFactory);
-      const payload = await paystackJson("/charge", {
+      if (provider === "paystack") {
+        const payload = await paystackJson("/charge", {
+          method: "POST",
+          body: JSON.stringify({
+            email: payment.input.email,
+            amount: String(payment.amount),
+            currency: "KES",
+            reference: payment.reference,
+            subaccount: payment.event.paystackSubaccountCode || undefined,
+            metadata: payment.metadata,
+            mobile_money: { phone: `+${payment.input.phone}`, provider: "mpesa" },
+          }),
+        });
+        return res.status(200).json({ reference: payment.reference, provider, status: payload.data?.status || "pending", displayText: payload.data?.display_text || "Approve the M-Pesa prompt on your phone.", channel: "mobile_money" });
+      }
+      const courtesy = getCourtesyConfig();
+      if (!courtesy) return res.status(503).json({ error: "CourtesyTech is not configured" });
+      const courtesyReference = `p${nanoid(10)}`;
+      const localPhone = `0${payment.input.phone.slice(3)}`;
+      const payload = await courtesyJson("/v2/stkpush", {
         method: "POST",
         body: JSON.stringify({
-          email: payment.input.email,
-          amount: String(payment.amount),
-          currency: "KES",
-          reference: payment.reference,
-          subaccount: payment.event.paystackSubaccountCode || undefined,
-          metadata: payment.metadata,
-          mobile_money: { phone: `+${payment.input.phone}`, provider: "mpesa" },
+          payment_account_id: courtesy.accountId,
+          phone: localPhone,
+          amount: Math.round(payment.amount / 100),
+          reference: courtesyReference,
+          description: `Ticket payment: ${payment.event.title}`.slice(0, 120),
+          callback_url: `${requestBaseUrl(req)}/api/webhook/courtesytech`,
+          success_callback_url: `${requestBaseUrl(req)}/api/webhook/courtesytech/success`,
+          confirmation_url: `${requestBaseUrl(req)}/api/webhook/courtesytech/confirmation`,
         }),
       });
-      return res.status(200).json({
-        reference: payment.reference,
-        status: payload.data?.status || "pending",
-        displayText: payload.data?.display_text || "Approve the M-Pesa prompt on your phone.",
-        channel: "mobile_money",
-      });
+      const checkoutRequestId = String(payload.checkout_request_id || payload.data?.checkout_request_id || "").trim();
+      if (!checkoutRequestId) throw new Error("CourtesyTech did not return a checkout request ID");
+      await db.insert(paymentAttempts).values({ reference: payment.reference, provider: "courtesytech", eventId: payment.input.eventId, buyerName: payment.input.name, buyerEmail: payment.input.email, buyerPhone: payment.input.phone, quantity: payment.input.quantity, amount: payment.amount, externalId: checkoutRequestId, status: "pending" });
+      return res.status(200).json({ reference: payment.reference, provider, checkoutRequestId, status: "pending", displayText: "Approve the M-Pesa prompt on your phone.", channel: "mobile_money" });
     } catch (error) {
       return res.status(400).json({ error: error instanceof Error ? error.message : "Unable to start M-Pesa payment" });
     }
@@ -228,12 +305,49 @@ export function registerTicketingRoutes(
     const reference = String(req.query.reference || "").trim();
     if (!/^passage-[A-Za-z0-9-]+$/.test(reference)) return res.status(400).json({ error: "Valid payment reference is required" });
     try {
+      const db = dbFactory();
+      const attempts = await db.select().from(paymentAttempts).where(eq(paymentAttempts.reference, reference)).limit(1);
+      const attempt = attempts[0];
+      const provider = attempt?.provider === "courtesytech" ? "courtesytech" : await getMpesaProvider(db);
+      if (provider === "courtesytech") {
+        if (!attempt) return res.status(404).json({ error: "Payment attempt not found" });
+        const payload = await courtesyJson("/v2/status", { method: "POST", body: JSON.stringify({ checkout_request_id: attempt.externalId }) });
+        const status = String(payload.status || payload.data?.status || "pending").toLowerCase();
+        const receipt = String(payload.mpesaReceipt || payload.data?.mpesaReceipt || "").trim() || null;
+        if (status === "completed" && attempt.status !== "completed") await finalizeCourtesyPayment(attempt, receipt, dbFactory);
+        if (status === "completed") await db.update(paymentAttempts).set({ status: "completed", receipt: receipt || undefined }).where(eq(paymentAttempts.reference, reference));
+        return res.status(200).json({ reference, provider, status, paid: status === "completed", receipt });
+      }
       const payload = await paystackJson(`/transaction/verify/${encodeURIComponent(reference)}`, { method: "GET" });
-      return res.status(200).json({ reference, status: payload.data?.status || "unknown", paid: payload.data?.status === "success" });
+      return res.status(200).json({ reference, provider, status: payload.data?.status || "unknown", paid: payload.data?.status === "success" });
     } catch (error) {
       return res.status(502).json({ error: error instanceof Error ? error.message : "Unable to check payment status" });
     }
   });
+
+  const courtesyCallback = async (req: Request, res: Response) => {
+    try {
+      const body = (req.body || {}) as Record<string, unknown>;
+      const checkoutRequestId = String(body.checkout_request_id || body.data && (body.data as Record<string, unknown>).checkout_request_id || "").trim();
+      if (checkoutRequestId) {
+        const db = dbFactory();
+        const attempts = await db.select().from(paymentAttempts).where(eq(paymentAttempts.externalId, checkoutRequestId)).limit(1);
+        const attempt = attempts[0];
+        if (attempt) {
+          const payload = await courtesyJson("/v2/status", { method: "POST", body: JSON.stringify({ checkout_request_id: checkoutRequestId }) });
+          const status = String(payload.status || payload.data?.status || "pending").toLowerCase();
+          if (status === "completed") await finalizeCourtesyPayment(attempt, String(payload.mpesaReceipt || payload.data?.mpesaReceipt || "") || null, dbFactory);
+        }
+      }
+      return res.status(200).json({ received: true });
+    } catch (error) {
+      console.error("[CourtesyTech callback]", error);
+      return res.status(200).json({ received: true });
+    }
+  };
+  app.post("/api/webhook/courtesytech", courtesyCallback);
+  app.post("/api/webhook/courtesytech/success", courtesyCallback);
+  app.post("/api/webhook/courtesytech/confirmation", courtesyCallback);
 
   app.post("/api/webhook/paystack", (req: Request, res: Response) => {
     const rawBody = Buffer.isBuffer(req.body)

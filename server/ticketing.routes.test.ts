@@ -39,6 +39,11 @@ function response() {
 describe("ticketing REST routes", () => {
   afterEach(() => {
     delete process.env.PAYSTACK_SECRET_KEY;
+    delete process.env.COURTNEY_API_KEY;
+    delete process.env.COURTNEY_API_SECRET;
+    delete process.env.COURTNEY_BASE_URL;
+    delete process.env.COURTNEY_ACCOUNT_ID;
+    delete process.env.MPESA_PROVIDER;
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
@@ -173,6 +178,41 @@ describe("ticketing REST routes", () => {
     const payload = JSON.parse(request.body);
     expect(payload.mobile_money).toEqual({ phone: "+254723000000", provider: "mpesa" });
     expect(payload.currency).toBe("KES");
+  });
+
+  it("routes M-Pesa through CourtesyTech when the provider setting is selected", async () => {
+    process.env.COURTNEY_API_KEY = "courtney-key";
+    process.env.COURTNEY_API_SECRET = "courtney-secret";
+    process.env.COURTNEY_BASE_URL = "https://courtneytech.xyz/api";
+    process.env.COURTNEY_ACCOUNT_ID = "60";
+    let selectCount = 0;
+    const db = {
+      select: () => ({
+        from: () => ({
+          where: () => ({
+            limit: async () => {
+              selectCount += 1;
+              return selectCount === 1 ? [{ value: "courtesytech" }] : [{ id: "EVT-1", title: "Test Event", ticketPrice: 250000, capacity: 100, soldCount: 2, paystackSubaccountCode: "ACCT_test" }];
+            },
+          }),
+        }),
+      }),
+      insert: () => ({ values: async () => undefined }),
+    };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ checkout_request_id: "chk_123" }), { status: 200, headers: { "content-type": "application/json" } })));
+    const routes = harness(db);
+    const res = response();
+    await routes.get("POST /api/payments/mpesa")!({ body: { eventId: "EVT-1", quantity: 1, name: "Buyer", email: "buyer@example.com", phone: "0723 000 000" }, protocol: "https", header: () => "https", get: () => "tickets.leetec.online" }, res);
+    expect(res.result.status).toBe(200);
+    expect((res.result.body as any).provider).toBe("courtesytech");
+    const request = (fetch as any).mock.calls[0][1];
+    expect((fetch as any).mock.calls[0][0]).toBe("https://courtneytech.xyz/api/v2/stkpush");
+    expect(request.headers["X-API-Key"]).toBe("courtney-key");
+    const payload = JSON.parse(request.body);
+    expect(payload.payment_account_id).toBe(60);
+    expect(payload.phone).toBe("0723000000");
+    expect(payload.amount).toBe(2500);
+    expect(payload.callback_url).toBe("https://tickets.leetec.online/api/webhook/courtesytech");
   });
 
   it("returns not found for a ticket that does not exist", async () => {
